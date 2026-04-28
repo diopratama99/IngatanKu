@@ -30,9 +30,9 @@ class StatGlassCard extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.15),
+              color: accent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: accent.withOpacity(0.4)),
+              border: Border.all(color: accent.withValues(alpha: 0.4)),
             ),
             child: Icon(icon, color: accent, size: 18),
           ),

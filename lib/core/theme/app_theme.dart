@@ -65,7 +65,7 @@ class AppTheme {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
     dividerColor: AppColors.glassStroke,
-    splashColor: AppColors.neonCyan.withOpacity(0.1),
-    highlightColor: AppColors.neonPurple.withOpacity(0.05),
+    splashColor: AppColors.neonCyan.withValues(alpha: 0.1),
+    highlightColor: AppColors.neonPurple.withValues(alpha: 0.05),
   );
 }

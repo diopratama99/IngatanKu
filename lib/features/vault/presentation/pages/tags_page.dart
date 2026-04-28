@@ -45,7 +45,8 @@ class _TagsPageState extends State<TagsPage> {
         child: BlocBuilder<VaultBloc, VaultState>(
           builder: (_, state) {
             if (state is VaultLoading || state is VaultInitial) {
-              return const Center(child: CircularProgressIndicator(
+              return const Center(
+                  child: CircularProgressIndicator(
                 color: AppColors.primary,
                 strokeWidth: 2,
               ));
@@ -54,13 +55,12 @@ class _TagsPageState extends State<TagsPage> {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text(state.message,
-                      style: context.textStyles.bodyMedium),
+                  child:
+                      Text(state.message, style: context.textStyles.bodyMedium),
                 ),
               );
             }
-            final notes =
-                state is VaultLoaded ? state.notes : <NoteEntity>[];
+            final notes = state is VaultLoaded ? state.notes : <NoteEntity>[];
             final counter = <String, int>{};
             for (final n in notes) {
               for (final t in n.tags) {
@@ -109,72 +109,192 @@ class _TagsPageState extends State<TagsPage> {
   }
 
   Future<void> _renameTag(String oldTag, List<NoteEntity> notes) async {
+    // Grab the bloc up-front so we don't have to use `context` after the
+    // dialog `await` (silences `use_build_context_synchronously`).
+    final bloc = context.read<VaultBloc>();
     final controller = TextEditingController(text: oldTag);
     final newTag = await showDialog<String>(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgSecondary,
-        title: const Text('Ubah nama tag'),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: AppColors.surfaceStroke, width: 1),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
+        contentPadding: const EdgeInsets.fromLTRB(22, 0, 22, 14),
+        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 14, 12),
+        title: Text(
+          'Ubah nama tag',
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            color: AppColors.textPrimary,
+            height: 1.15,
+          ),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Nama tag baru'),
+          style: GoogleFonts.inter(
+            fontSize: 15,
+            color: AppColors.textPrimary,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Nama tag baru',
+            hintStyle: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textTertiary,
+            ),
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            filled: true,
+            fillColor: AppColors.bgPrimary,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: AppColors.surfaceStroke, width: 1),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: AppColors.surfaceStroke, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Batal')),
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textTertiary,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textTertiary,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Simpan'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(
+              'Simpan',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+                letterSpacing: 0.1,
+              ),
+            ),
           ),
         ],
       ),
     );
     if (newTag == null || newTag.isEmpty || newTag == oldTag) return;
     final affected = notes.where((n) => n.tags.contains(oldTag));
-    final bloc = context.read<VaultBloc>();
     for (final n in affected) {
-      final next =
-          n.tags.map((t) => t == oldTag ? newTag : t).toSet().toList();
+      final next = n.tags.map((t) => t == oldTag ? newTag : t).toSet().toList();
       bloc.add(VaultNoteUpdated(UpdateNoteParams(id: n.id, tags: next)));
     }
     if (mounted) {
-      context.showSnack(
-          'Tag "$oldTag" → "$newTag" (${affected.length} catatan)');
+      context
+          .showSnack('Tag "$oldTag" → "$newTag" (${affected.length} catatan)');
     }
   }
 
   Future<void> _deleteTag(String tag, List<NoteEntity> notes) async {
+    final bloc = context.read<VaultBloc>();
     final affected = notes.where((n) => n.tags.contains(tag)).toList();
     final ok = await showDialog<bool>(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgSecondary,
-        title: Text('Hapus tag #$tag?'),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: AppColors.surfaceStroke, width: 1),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
+        contentPadding: const EdgeInsets.fromLTRB(22, 0, 22, 14),
+        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 14, 12),
+        title: Text(
+          'Hapus tag #$tag?',
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            color: AppColors.textPrimary,
+            height: 1.15,
+          ),
+        ),
         content: Text(
-            'Tag akan dilepas dari ${affected.length} catatan. Catatan tetap ada, hanya tag-nya yang hilang.'),
+          'Tag akan dilepas dari ${affected.length} catatan. '
+          'Catatan tetap ada, hanya tag-nya yang hilang.',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            height: 1.55,
+            color: AppColors.textSecondary,
+          ),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal')),
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textTertiary,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textTertiary,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus',
-                style: TextStyle(color: AppColors.danger)),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.danger,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.danger,
+                letterSpacing: 0.1,
+              ),
+            ),
           ),
         ],
       ),
     );
     if (ok != true) return;
-    final bloc = context.read<VaultBloc>();
     for (final n in affected) {
       final next = n.tags.where((t) => t != tag).toList();
       bloc.add(VaultNoteUpdated(UpdateNoteParams(id: n.id, tags: next)));
     }
     if (mounted) {
-      context
-          .showSnack('Tag #$tag dihapus dari ${affected.length} catatan');
+      context.showSnack('Tag #$tag dihapus dari ${affected.length} catatan');
     }
   }
 }

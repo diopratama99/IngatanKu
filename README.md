@@ -34,9 +34,17 @@ UI-nya editorial: tipografi besar, hierarki tegas, satu warna aksen — bahasa v
 | **Tanya Otak Kedua** | RAG chat di atas catatanmu sendiri. Streaming jawaban via Server-Sent Events. |
 | **Berbagi Publik** | Generate tautan baca-saja (`/share/:token`) untuk catatan yang ingin kamu bagikan. |
 | **Share Intent** | Klik tombol Bagikan dari aplikasi lain (browser, IG, dll) langsung masuk ke alur Tambah Catatan. |
+| **Onboarding 4 Slide** | Welcome flow editorial untuk pengguna baru pasca-OTP — brand mark, capture, ask, streak. Existing user di-skip langsung ke `/dashboard`. |
+| **Manajemen Tag** | Halaman dedicated untuk rename / hapus tag massal — semua catatan ber-tag tersebut otomatis ter-update. |
+| **Knowledge Map** | Visualisasi editorial distribusi tag (bar chart tipografi, bukan bubble cloud) — top topik, share dominan, ranking 1..N. |
+| **Notes Stats** | Breakdown analitik atas brankas: per sumber, per periode (minggu / bulan / lampau), per tag. |
+| **Badges Stats** | Halaman detail progress lencana — dipasangkan ke setiap badge dengan progress bar tipis. |
 | **Streak & Reminder** | XP, level, dan notifikasi lokal harian agar konsistensi belajar terjaga. |
 | **7 Lencana Bawaan** | Diberikan otomatis berdasarkan pola perilaku (lihat tabel di bawah). |
-| **UI Editorial** | Latar netral, tipografi Space Grotesk + Inter, satu warna aksen indigo, hairline divider. |
+| **Android Home Widget** | Widget homescreen yang menampilkan 3 catatan terakhir + pintasan `Catat baru`. RemoteViews-safe layout, di-update lewat `home_widget` plugin. |
+| **Halaman Privacy & About** | Static pages editorial — kebijakan data + ringkasan stack, dipasang di Profile. |
+| **Brand Mark** | Logo IK monogram (indigo gradient + white serif-grotesque K) — sama persis di onboarding slide pertama, app icon (iOS rounded square + Android adaptive), dan splash. |
+| **UI Editorial** | Latar netral `#0F172A`, tipografi Space Grotesk + Inter, satu warna aksen indigo, hairline divider, dialog confirm pakai SpaceGrotesk title + danger/primary CTA. |
 
 ---
 
@@ -81,12 +89,13 @@ lib/
 ├── shared/
 │   └── widgets/       # editorial.dart (SectionHeader, EditorialButton, dll)
 ├── features/
-│   ├── auth/          # login, signup, OTP verification
-│   ├── vault/         # CRUD catatan, tag, share, list
+│   ├── auth/          # login, signup, OTP verification, forgot password
+│   ├── onboarding/    # 4-slide welcome flow (post-OTP, fresh users only)
+│   ├── vault/         # CRUD catatan, tag mgmt, share, knowledge map, stats
 │   ├── ai_chat/       # RAG chat dengan SSE streaming
-│   ├── dashboard/     # XP, streak, daftar terbaru
-│   ├── gamification/  # Lencana
-│   └── profile/       # Pengaturan akun
+│   ├── dashboard/     # XP, streak, daftar terbaru, level ring
+│   ├── gamification/  # 7 lencana + halaman progress
+│   └── profile/       # Pengaturan akun, privacy, about, sign-out
 ├── app.dart           # MaterialApp + global providers
 └── main.dart          # Entry point + DI bootstrap
 ```
@@ -270,6 +279,13 @@ flutter clean
 
 ## Roadmap
 
+- [x] Welcome onboarding flow (4 slides editorial)
+- [x] Tag management (rename / delete massal)
+- [x] Knowledge map editorial (typografi, bukan bubble cloud)
+- [x] Notes stats & badges stats pages
+- [x] Android home widget (3 catatan terbaru + shortcut)
+- [x] Brand mark + app icon (IK monogram, iOS rounded square + Android adaptive)
+- [ ] iOS WidgetKit equivalent untuk home widget
 - [ ] Sinkronisasi offline-first dengan Drift
 - [ ] Export catatan ke Obsidian / Markdown ZIP
 - [ ] Voice-to-Note dengan Whisper (di server)

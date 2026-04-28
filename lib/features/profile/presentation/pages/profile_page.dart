@@ -11,15 +11,97 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
+  /// Shows a confirmation dialog before dispatching [AuthSignOutRequested].
+  /// We grab the bloc reference *before* the await so we don't have to use
+  /// `BuildContext` across an async gap (avoids `use_build_context_synchronously`).
+  ///
+  /// Styled to match the rest of the editorial dark theme:
+  ///   * SpaceGrotesk display title, Inter body
+  ///   * Hairline stroke border + slightly tighter radius
+  ///   * "Batal" muted (textTertiary) and "Keluar" in danger red so the
+  ///     destructive option is the only visually loud choice on screen.
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final bloc = context.read<AuthBloc>();
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSecondary,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: AppColors.surfaceStroke, width: 1),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
+        contentPadding: const EdgeInsets.fromLTRB(22, 0, 22, 14),
+        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 14, 12),
+        title: Text(
+          'Yakin ingin keluar?',
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            color: AppColors.textPrimary,
+            height: 1.15,
+          ),
+        ),
+        content: Text(
+          'Kamu harus masuk lagi untuk membuka catatanmu.',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            height: 1.55,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textTertiary,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textTertiary,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.danger,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            child: Text(
+              'Keluar',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.danger,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      bloc.add(AuthSignOutRequested());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.read<AuthBloc>().state is Authenticated
         ? (context.read<AuthBloc>().state as Authenticated).user
         : null;
 
-    final initial = (user?.username ?? user?.email ?? '?')
-        .substring(0, 1)
-        .toUpperCase();
+    final initial =
+        (user?.username ?? user?.email ?? '?').substring(0, 1).toUpperCase();
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -76,18 +158,27 @@ class ProfilePage extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Sign-out trigger lives next to the identity block. Compact
+                // icon button with the danger color so the action reads as
+                // "this is your account exit" without a full-width red row.
+                // Tap goes through a confirmation dialog so the user doesn't
+                // accidentally sign out and lose their session.
+                IconButton(
+                  tooltip: 'Keluar',
+                  onPressed: () => _confirmSignOut(context),
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    size: 20,
+                    color: AppColors.danger,
+                  ),
+                  splashRadius: 22,
+                ),
               ],
             ),
             const SizedBox(height: 40),
 
-            // ─── Pengaturan ───────────────────────────────────────────
+            // ─── Pengaturan ───────────────────────────────────────
             const SectionHeader(label: 'PENGATURAN'),
-            _ProfileNavRow(
-              icon: Icons.workspace_premium_outlined,
-              label: 'Lencanaku',
-              onTap: () => context.go(Routes.badges),
-            ),
-            const ThinDivider(),
             _ProfileNavRow(
               icon: Icons.tag_rounded,
               label: 'Kelola tag',
@@ -97,24 +188,13 @@ class ProfilePage extends StatelessWidget {
             _ProfileNavRow(
               icon: Icons.privacy_tip_outlined,
               label: 'Privasi & data',
-              onTap: () {},
+              onTap: () => context.push(Routes.privacy),
             ),
             const ThinDivider(),
             _ProfileNavRow(
               icon: Icons.info_outline,
               label: 'Tentang IngatanKu',
-              onTap: () {},
-            ),
-            const SizedBox(height: 48),
-
-            // ─── Akun ─────────────────────────────────────────────────
-            const SectionHeader(label: 'AKUN'),
-            _ProfileNavRow(
-              icon: Icons.logout_rounded,
-              label: 'Keluar',
-              destructive: true,
-              onTap: () =>
-                  context.read<AuthBloc>().add(AuthSignOutRequested()),
+              onTap: () => context.push(Routes.about),
             ),
           ],
         ),
@@ -127,25 +207,21 @@ class _ProfileNavRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool destructive;
   const _ProfileNavRow({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.destructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final fg =
-        destructive ? AppColors.danger : AppColors.textPrimary;
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 18),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: fg),
+            Icon(icon, size: 18, color: AppColors.textPrimary),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
@@ -153,16 +229,14 @@ class _ProfileNavRow extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  color: fg,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
-            Icon(
+            const Icon(
               Icons.arrow_forward_rounded,
               size: 16,
-              color: destructive
-                  ? AppColors.danger.withOpacity(0.7)
-                  : AppColors.textTertiary,
+              color: AppColors.textTertiary,
             ),
           ],
         ),

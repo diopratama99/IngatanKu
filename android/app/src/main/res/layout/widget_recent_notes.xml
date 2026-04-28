@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  RecentNotesWidget — RemoteViews-safe layout.
+  Notes for future me:
+   * Avoid ?android:attr theme references (e.g. selectableItemBackground)
+     because they are resolved against the launcher's theme, not the app's,
+     and frequently cause "Can't load widget" on OEM launchers.
+   * Avoid layout_weight spacers when LinearLayout is sized match_parent —
+     OEM launchers occasionally fail to honour weight inflation in
+     RemoteViews. The footer is appended naturally and the widget grows
+     downward; users can resize.
+   * Stick to the RemoteViews-allowed widget set: LinearLayout, FrameLayout,
+     RelativeLayout, GridLayout, TextView, ImageView, ImageButton, Button,
+     ProgressBar, ViewFlipper, ListView, GridView. Plain <View> is NOT
+     allowlisted on Android 14+ — use a 1dp TextView for hairline dividers.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="18dp"
+    android:background="@drawable/widget_background">
+
+    <!-- ── Header eyebrow ───────────────────────────────────── -->
+    <TextView
+        android:id="@+id/widget_eyebrow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CATATAN TERBARU"
+        android:textColor="#94A3B8"
+        android:textSize="10sp"
+        android:fontFamily="sans-serif-medium"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- ── Note row 0 ────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/widget_row_0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:id="@+id/widget_title_0"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#F8FAFC"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/widget_tag_0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:textColor="#818CF8"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"/>
+    </LinearLayout>
+
+    <!-- Hairline divider — implemented as a 1dp TextView because plain
+         <View> is not in the RemoteViews allowlist on Android 14+ and would
+         throw "Class not allowed to be inflated android.view.View". -->
+    <TextView
+        android:id="@+id/widget_divider_0"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1E293B"/>
+
+    <!-- ── Note row 1 ────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/widget_row_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:id="@+id/widget_title_1"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#F8FAFC"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/widget_tag_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:textColor="#818CF8"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_divider_1"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1E293B"/>
+
+    <!-- ── Note row 2 ────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/widget_row_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:id="@+id/widget_title_2"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#F8FAFC"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/widget_tag_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:textColor="#818CF8"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"/>
+    </LinearLayout>
+
+    <!-- ── Empty state (mutually exclusive with rows) ─────────── -->
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Belum ada catatan."
+        android:textColor="#64748B"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:paddingTop="18dp"
+        android:paddingBottom="18dp"
+        android:visibility="gone"/>
+
+    <!-- ── Footer: capture pill + timestamp ──────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="10dp">
+
+        <LinearLayout
+            android:id="@+id/widget_capture"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="10dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:background="@drawable/widget_capture_bg">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginEnd="6dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CATAT BARU"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp"
+                android:fontFamily="sans-serif-medium"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_updated"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#64748B"
+            android:textSize="10sp"
+            android:gravity="end"
+            android:layout_marginStart="10dp"
+            android:fontFamily="sans-serif"/>
+    </LinearLayout>
+</LinearLayout>

@@ -64,18 +64,22 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Lanjutkan membangun otak keduamu.',
+                    'Masuk untuk lanjutkan koleksi catatanmu.',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: AppColors.textSecondary,
+                      height: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 40),
+
+                  // ── Email field ────────────────────────────────
                   Text('EMAIL', style: eyebrowStyle()),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
                     decoration: const InputDecoration(
                       hintText: 'kamu@example.com',
                     ),
@@ -83,12 +87,33 @@ class _LoginPageState extends State<LoginPage> {
                         ? 'Email tidak valid'
                         : null,
                   ),
-                  const SizedBox(height: 24),
-                  Text('KATA SANDI', style: eyebrowStyle()),
+                  const SizedBox(height: 22),
+
+                  // ── Password field with inline LUPA? link ─────
+                  Row(
+                    children: [
+                      Text('KATA SANDI', style: eyebrowStyle()),
+                      const Spacer(),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => context.push(Routes.forgotPassword),
+                        child: Text(
+                          'LUPA?',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            letterSpacing: 1.6,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _password,
                     obscureText: _obscure,
+                    autofillHints: const [AutofillHints.password],
                     decoration: InputDecoration(
                       hintText: 'Minimal 6 karakter',
                       suffixIcon: IconButton(
@@ -98,8 +123,7 @@ class _LoginPageState extends State<LoginPage> {
                               : Icons.visibility_off_outlined,
                           size: 18,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscure = !_obscure),
+                        onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
                     validator: (v) => (v == null || v.length < 6)
@@ -107,26 +131,67 @@ class _LoginPageState extends State<LoginPage> {
                         : null,
                   ),
                   const SizedBox(height: 32),
+
+                  // ── Submit ────────────────────────────────────
                   BlocBuilder<AuthBloc, AuthState>(
-                    builder: (_, state) {
-                      return EditorialButton(
-                        label: 'Masuk',
-                        icon: Icons.arrow_forward_rounded,
-                        fullWidth: true,
-                        loading: state is AuthLoading,
-                        onPressed: _submit,
-                      );
-                    },
+                    builder: (_, state) => EditorialButton(
+                      label: 'Masuk',
+                      icon: Icons.arrow_forward_rounded,
+                      fullWidth: true,
+                      loading: state is AuthLoading,
+                      onPressed: _submit,
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
+
+                  // ── Divider + Sign-up link ────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: AppColors.surfaceStroke,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'ATAU',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          letterSpacing: 1.6,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: AppColors.surfaceStroke,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
                   Center(
                     child: TextButton(
                       onPressed: () => context.push(Routes.signup),
-                      child: Text(
-                        'Belum punya akun? Daftar di sini',
-                        style: GoogleFonts.inter(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500,
+                      child: RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                          children: [
+                            const TextSpan(text: 'Belum punya akun?  '),
+                            TextSpan(
+                              text: 'Daftar',
+                              style: GoogleFonts.inter(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

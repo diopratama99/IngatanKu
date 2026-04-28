@@ -1,30 +1,25 @@
-// This is a basic Flutter widget test.
+// Placeholder smoke test for the IngatanKu app.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// The original boilerplate from `flutter create` referenced a non-existent
+// `MyApp` class and a counter UI that was never part of this project. Mounting
+// the real entry widget (`IngatanKuApp`) inside a vanilla widget test would
+// require mocking Supabase, the local DB, and several Bloc providers — that
+// effort belongs in dedicated feature-level test files (see future
+// `test/features/<feature>/...`), not in a top-level smoke test.
+//
+// For now this file exists so `flutter test` has at least one passing target
+// and CI doesn't choke on the test runner missing entries. Replace this with
+// a real smoke test once a lightweight `IngatanKuApp.testHarness()` factory
+// exists.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:ingatanku/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('renders a trivial widget', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: Text('IngatanKu test harness'))),
+    );
+    expect(find.text('IngatanKu test harness'), findsOneWidget);
   });
 }

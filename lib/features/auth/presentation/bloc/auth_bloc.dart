@@ -46,7 +46,8 @@ class AuthSignOutRequested extends AuthEvent {}
 class AuthOtpVerificationRequested extends AuthEvent {
   final String email;
   final String token;
-  const AuthOtpVerificationRequested({required this.email, required this.token});
+  const AuthOtpVerificationRequested(
+      {required this.email, required this.token});
   @override
   List<Object?> get props => [email, token];
 }
@@ -56,6 +57,35 @@ class AuthOtpResendRequested extends AuthEvent {
   const AuthOtpResendRequested(this.email);
   @override
   List<Object?> get props => [email];
+}
+
+/// Request a password reset — sends a 6-digit recovery OTP to [email].
+class AuthPasswordResetRequested extends AuthEvent {
+  final String email;
+  const AuthPasswordResetRequested(this.email);
+  @override
+  List<Object?> get props => [email];
+}
+
+/// Verify the password-reset OTP. On success the bloc enters
+/// [AuthPasswordResetVerified] and waits for [AuthPasswordUpdateRequested].
+class AuthPasswordResetVerifyRequested extends AuthEvent {
+  final String email;
+  final String token;
+  const AuthPasswordResetVerifyRequested({
+    required this.email,
+    required this.token,
+  });
+  @override
+  List<Object?> get props => [email, token];
+}
+
+/// Submit the new password during the password-reset flow.
+class AuthPasswordUpdateRequested extends AuthEvent {
+  final String newPassword;
+  const AuthPasswordUpdateRequested(this.newPassword);
+  @override
+  List<Object?> get props => [newPassword];
 }
 
 // ============ STATES ============
@@ -102,6 +132,25 @@ class AuthOtpResent extends AuthState {
   List<Object?> get props => [email];
 }
 
+/// Password-reset code dispatched — the UI should advance to the OTP step.
+class AuthPasswordResetCodeSent extends AuthState {
+  final String email;
+  const AuthPasswordResetCodeSent(this.email);
+  @override
+  List<Object?> get props => [email];
+}
+
+/// Recovery OTP verified — the auth client now holds a recovery session.
+/// The UI should advance to the new-password step. The bloc *suppresses* the
+/// auto-emitted [Authenticated] from the auth-state stream while in this
+/// state so the user is forced through password update first.
+class AuthPasswordResetVerified extends AuthState {
+  final String email;
+  const AuthPasswordResetVerified(this.email);
+  @override
+  List<Object?> get props => [email];
+}
+
 // ============ BLOC ============
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SignIn _signIn;
@@ -127,6 +176,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSignOutRequested>(_onSignOut);
     on<AuthOtpVerificationRequested>(_onVerifyOtp);
     on<AuthOtpResendRequested>(_onResendOtp);
+    on<AuthPasswordResetRequested>(_onPasswordResetRequested);
+    on<AuthPasswordResetVerifyRequested>(_onPasswordResetVerify);
+    on<AuthPasswordUpdateRequested>(_onPasswordUpdate);
   }
 
   void _onStarted(AuthStarted e, Emitter<AuthState> emit) {
@@ -137,12 +189,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   void _onUserChanged(AuthUserChanged e, Emitter<AuthState> emit) {
+    // While the recovery flow is in progress (between OTP verify and password
+    // update) Supabase has already issued a session, which would normally
+    // cause this listener to flip the state to [Authenticated]. We suppress
+    // that so the UI stays on the new-password step until the user submits.
+    if (state is AuthPasswordResetVerified) return;
     emit(e.user != null ? Authenticated(e.user!) : Unauthenticated());
   }
 
   Future<void> _onSignIn(AuthSignInRequested e, Emitter<AuthState> emit) async {
     emit(AuthLoading());
-    final res = await _signIn(SignInParams(email: e.email, password: e.password));
+    final res =
+        await _signIn(SignInParams(email: e.email, password: e.password));
     res.fold(
       (f) => emit(AuthError(f.message)),
       (u) => emit(Authenticated(u)),
@@ -187,7 +245,50 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  Future<void> _onSignOut(AuthSignOutRequested e, Emitter<AuthState> emit) async {
+  Future<void> _onPasswordResetRequested(
+    AuthPasswordResetRequested e,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final res = await _repo.sendPasswordResetOtp(email: e.email);
+    res.fold(
+      (f) => emit(AuthError(f.message)),
+      (_) => emit(AuthPasswordResetCodeSent(e.email)),
+    );
+  }
+
+  Future<void> _onPasswordResetVerify(
+    AuthPasswordResetVerifyRequested e,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final res = await _repo.verifyPasswordResetOtp(
+      email: e.email,
+      token: e.token,
+    );
+    res.fold(
+      (f) => emit(AuthError(f.message)),
+      (_) => emit(AuthPasswordResetVerified(e.email)),
+    );
+  }
+
+  Future<void> _onPasswordUpdate(
+    AuthPasswordUpdateRequested e,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final res = await _repo.updatePassword(newPassword: e.newPassword);
+    res.fold(
+      (f) => emit(AuthError(f.message)),
+      (_) {
+        final u = _repo.currentUser;
+        emit(u != null ? Authenticated(u) : Unauthenticated());
+      },
+    );
+  }
+
+  Future<void> _onSignOut(
+      AuthSignOutRequested e, Emitter<AuthState> emit) async {
     await _signOut(const NoParams());
     emit(Unauthenticated());
   }

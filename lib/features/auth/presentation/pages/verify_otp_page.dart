@@ -93,7 +93,10 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
           _ctrl.clear();
           _focus.requestFocus();
         } else if (state is Authenticated) {
-          context.go(Routes.dashboard);
+          // Fresh sign-up: ride through the welcome/onboarding slides
+          // before landing on the dashboard. Returning users sign in via
+          // LoginPage which routes them straight to /dashboard.
+          context.go(Routes.onboarding);
         } else if (state is AuthOtpResent) {
           context.showSnack('Kode baru sudah dikirim ke email-mu');
         }
@@ -118,8 +121,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                 Text.rich(
                   TextSpan(
                     children: [
-                      const TextSpan(
-                          text: 'Kami mengirim 6 digit kode ke\n'),
+                      const TextSpan(text: 'Kami mengirim 6 digit kode ke\n'),
                       TextSpan(
                         text: widget.email,
                         style: GoogleFonts.inter(
@@ -145,8 +147,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                   autofocus: true,
                   defaultPinTheme: defaultPin,
                   focusedPinTheme: defaultPin.copyBorderWith(
-                    border: Border.all(
-                        color: AppColors.primary, width: 1.5),
+                    border: Border.all(color: AppColors.primary, width: 1.5),
                   ),
                   submittedPinTheme: defaultPin.copyWith(
                     decoration: defaultPin.decoration!.copyWith(
@@ -156,8 +157,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
                   ),
                   onCompleted: _verify,
                   keyboardType: TextInputType.number,
-                  pinputAutovalidateMode:
-                      PinputAutovalidateMode.onSubmit,
+                  pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
                 ),
                 const SizedBox(height: 32),
                 BlocBuilder<AuthBloc, AuthState>(

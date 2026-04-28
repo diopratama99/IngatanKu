@@ -14,7 +14,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
-        android:label="ingatanku"
+        android:label="IngatanKu"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -51,6 +51,23 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Homescreen widget: shows the user's 3 most recent notes.
+             Receiver is exported because the launcher process needs to bind
+             to it. APPWIDGET_UPDATE handles initial draw + scheduled refresh;
+             the home_widget plugin's BACKGROUND action lets us push updates
+             from Flutter on demand. -->
+        <receiver
+            android:name=".RecentNotesWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/recent_notes_widget_info" />
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

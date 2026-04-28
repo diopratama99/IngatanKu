@@ -23,7 +23,7 @@ class UrlPreviewCard extends StatelessWidget {
         margin: const EdgeInsets.only(top: 14),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.bgSecondary.withOpacity(0.5),
+          color: AppColors.bgSecondary.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: AppColors.surfaceStroke),
         ),

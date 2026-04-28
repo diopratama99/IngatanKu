@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Provider metadata for the Recent Notes homescreen widget.
+  - minWidth/Height: ~ 4 cells wide × 2 cells tall (Android grid is ~70dp/cell).
+  - resizeMode: user can stretch in either direction.
+  - updatePeriodMillis: 1_800_000 = 30 min, the OS-enforced minimum. Most
+    refreshes happen on demand from Flutter (HomeWidget.updateWidget) so
+    this is mostly a fallback.
+  - previewLayout: same layout used at runtime, so the picker shows a true
+    preview of the empty state.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/widget_recent_notes"
+    android:minWidth="250dp"
+    android:minHeight="160dp"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="120dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="1800000"/>

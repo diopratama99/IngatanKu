@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.ingatanku"
+    namespace = "com.temanlabs.ingatanku"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -26,7 +26,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.ingatanku"
+        applicationId = "com.temanlabs.ingatanku"
         // flutter_local_notifications + speech_to_text need 21+
         minSdk = maxOf(flutter.minSdkVersion, 21)
         targetSdk = flutter.targetSdkVersion

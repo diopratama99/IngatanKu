@@ -30,10 +30,10 @@ class LocaleToggleChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.12),
+            color: AppColors.primary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(20),
             border:
-                Border.all(color: AppColors.primary.withOpacity(0.35), width: 1),
+                Border.all(color: AppColors.primary.withValues(alpha: 0.35), width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

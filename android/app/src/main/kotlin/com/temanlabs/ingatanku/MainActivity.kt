@@ -1,4 +1,4 @@
-package com.example.ingatanku
+package com.temanlabs.ingatanku
 
 import io.flutter.embedding.android.FlutterActivity
 

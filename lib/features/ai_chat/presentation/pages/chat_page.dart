@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../../../shared/widgets/editorial.dart';
@@ -34,8 +35,7 @@ class _ChatPageState extends State<ChatPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
         _scroll.animateTo(_scroll.position.maxScrollExtent + 400,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut);
+            duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
     });
   }
@@ -48,7 +48,7 @@ class _ChatPageState extends State<ChatPage> {
         backgroundColor: AppColors.bgPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Text('TANYA OTAK KEDUAMU', style: eyebrowStyle()),
+        title: Text('TANYA ASISTENMU', style: eyebrowStyle()),
         actions: [
           IconButton(
             icon: const Icon(Icons.restart_alt_rounded, size: 20),
@@ -62,13 +62,11 @@ class _ChatPageState extends State<ChatPage> {
           children: [
             Expanded(
               child: BlocConsumer<ChatBloc, ChatState>(
-                listenWhen: (a, b) =>
-                    a.messages.length != b.messages.length,
+                listenWhen: (a, b) => a.messages.length != b.messages.length,
                 listener: (_, __) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (_scroll.hasClients) {
-                      _scroll.animateTo(
-                          _scroll.position.maxScrollExtent,
+                      _scroll.animateTo(_scroll.position.maxScrollExtent,
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.easeOut);
                     }
@@ -89,7 +87,12 @@ class _ChatPageState extends State<ChatPage> {
             const ThinDivider(),
             SafeArea(
               top: false,
-              minimum: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+              minimum: const EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                12 + kEditorialNavBarOverlay,
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
@@ -180,7 +183,7 @@ class _EmptyChat extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       children: [
-        Text('Tanya\notak\nkeduamu.', style: pageTitleStyle(size: 38)),
+        Text('Tanya\nasistenmu.', style: pageTitleStyle(size: 38)),
         const SizedBox(height: 12),
         Text(
           'AI akan mencari di seluruh catatan yang sudah kamu simpan dan menjawab dengan referensi langsung.',

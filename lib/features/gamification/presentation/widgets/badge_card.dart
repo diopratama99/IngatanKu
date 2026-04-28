@@ -55,7 +55,7 @@ class BadgeCard extends StatelessWidget {
         border: Border.all(
           color: faded
               ? AppColors.surfaceStroke
-              : accent.withOpacity(0.4),
+              : accent.withValues(alpha: 0.4),
           width: 1,
         ),
       ),

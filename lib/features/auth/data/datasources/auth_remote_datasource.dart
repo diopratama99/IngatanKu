@@ -26,6 +26,20 @@ abstract class AuthRemoteDataSource {
   /// Re-send the signup OTP code.
   Future<void> resendOtp({required String email});
 
+  /// Send a 6-digit OTP for password reset.
+  Future<void> sendPasswordResetOtp({required String email});
+
+  /// Verify the password-reset OTP. On success the auth client holds a
+  /// (recovery) session and [updatePassword] becomes callable.
+  Future<UserModel> verifyPasswordResetOtp({
+    required String email,
+    required String token,
+  });
+
+  /// Update the password for the currently-authenticated user. Used after a
+  /// recovery OTP has been verified.
+  Future<void> updatePassword({required String newPassword});
+
   Future<void> signOut();
   UserModel? currentUser();
   Stream<UserModel?> authStateChanges();
@@ -38,9 +52,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   GoTrueClient get _auth => _service.auth;
 
   @override
-  Future<UserModel> signIn({required String email, required String password}) async {
+  Future<UserModel> signIn(
+      {required String email, required String password}) async {
     try {
-      final res = await _auth.signInWithPassword(email: email, password: password);
+      final res =
+          await _auth.signInWithPassword(email: email, password: password);
       final user = res.user;
       if (user == null) throw AuthException('Sign-in failed');
       return UserModel.fromSupabase(user);
@@ -103,6 +119,49 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void> resendOtp({required String email}) async {
     try {
       await _auth.resend(email: email, type: OtpType.signup);
+    } on AuthApiException catch (e) {
+      throw AuthException(e.message);
+    } catch (e) {
+      throw AuthException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> sendPasswordResetOtp({required String email}) async {
+    try {
+      await _auth.resetPasswordForEmail(email);
+    } on AuthApiException catch (e) {
+      throw AuthException(e.message);
+    } catch (e) {
+      throw AuthException(e.toString());
+    }
+  }
+
+  @override
+  Future<UserModel> verifyPasswordResetOtp({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      final res = await _auth.verifyOTP(
+        email: email,
+        token: token,
+        type: OtpType.recovery,
+      );
+      final user = res.user;
+      if (user == null) throw AuthException('Kode reset tidak valid');
+      return UserModel.fromSupabase(user);
+    } on AuthApiException catch (e) {
+      throw AuthException(e.message);
+    } catch (e) {
+      throw AuthException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> updatePassword({required String newPassword}) async {
+    try {
+      await _auth.updateUser(UserAttributes(password: newPassword));
     } on AuthApiException catch (e) {
       throw AuthException(e.message);
     } catch (e) {

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Indigo "Catat baru" pill background (matches AppColors.primary).
+  Slight rounded corners so it reads as a button rather than a label.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#6366F1"/>
+    <corners android:radius="8dp"/>
+</shape>

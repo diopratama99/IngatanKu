@@ -110,7 +110,7 @@ class _BadgesPageState extends State<BadgesPage> {
                             child: LinearProgressIndicator(
                               value: total == 0 ? 0 : unlocked / total,
                               backgroundColor:
-                                  AppColors.bgTertiary.withOpacity(0.4),
+                                  AppColors.bgTertiary.withValues(alpha: 0.4),
                               valueColor: const AlwaysStoppedAnimation(
                                   AppColors.primary),
                               minHeight: 3,

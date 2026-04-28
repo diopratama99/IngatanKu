@@ -285,7 +285,7 @@ class _AddNotePageState extends State<AddNotePage>
                     Expanded(
                       child: Container(
                         height: 1,
-                        color: AppColors.surfaceStroke.withOpacity(0.5),
+                        color: AppColors.surfaceStroke.withValues(alpha: 0.5),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -314,7 +314,7 @@ class _AddNotePageState extends State<AddNotePage>
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color:
-                                AppColors.bgSecondary.withOpacity(0.5),
+                                AppColors.bgSecondary.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(8),
                             border:
                                 Border.all(color: AppColors.surfaceStroke),
@@ -334,7 +334,7 @@ class _AddNotePageState extends State<AddNotePage>
                               code: GoogleFonts.jetBrainsMono(
                                 fontSize: 13,
                                 backgroundColor:
-                                    AppColors.bgTertiary.withOpacity(0.4),
+                                    AppColors.bgTertiary.withValues(alpha: 0.4),
                                 color: AppColors.accent,
                               ),
                             ),
@@ -352,7 +352,7 @@ class _AddNotePageState extends State<AddNotePage>
                           ),
                           decoration: const InputDecoration(
                             hintText:
-                                'Tulis insight, ringkasan, atau hal yang ingin kamu ingat dari konten ini…\n\nTip: pakai **bold**, *italic*, - bullet, ## judul (Markdown).',
+                                'Tulis insight, ringkasan, atau hal yang ingin kamu ingat dari konten ini.',
                           ),
                           validator: (v) =>
                               (v == null || v.trim().length < 10)

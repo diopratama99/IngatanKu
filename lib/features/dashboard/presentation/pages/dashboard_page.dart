@@ -8,9 +8,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../../../shared/widgets/editorial.dart';
 import '../../../../shared/widgets/shimmer_loader.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../vault/domain/entities/note_entity.dart';
 import '../bloc/dashboard_cubit.dart';
+import '../widgets/recent_notes_carousel.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -78,26 +77,8 @@ class _DashboardPageState extends State<DashboardPage> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 56),
       children: [
-        // Top meta — date + sign-out, both as quiet caption text.
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(_formatToday(), style: eyebrowStyle()),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => context.read<AuthBloc>().add(AuthSignOutRequested()),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('KELUAR', style: eyebrowStyle()),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.logout_rounded,
-                      size: 13, color: AppColors.textTertiary),
-                ],
-              ),
-            ),
-          ],
-        ),
+        // Top meta — date as quiet caption text.
+        Text(_formatToday(), style: eyebrowStyle()),
         const SizedBox(height: 36),
 
         // Editorial greeting — large display type, two lines.
@@ -152,7 +133,7 @@ class _DashboardPageState extends State<DashboardPage> {
           borderRadius: BorderRadius.circular(2),
           child: LinearProgressIndicator(
             value: d.xpProgress,
-            backgroundColor: AppColors.bgTertiary.withOpacity(0.4),
+            backgroundColor: AppColors.bgTertiary.withValues(alpha: 0.4),
             valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             minHeight: 3,
           ),
@@ -162,7 +143,15 @@ class _DashboardPageState extends State<DashboardPage> {
           '$remainingXp XP lagi → Level ${d.level + 1}',
           style: context.textStyles.bodySmall,
         ),
-        const SizedBox(height: 48),
+        const SizedBox(height: 40),
+
+        // CATATAN KAMU — auto-rotating single-card carousel of recent notes.
+        if (d.recentNotes.isNotEmpty) ...[
+          const SectionHeader(label: 'CATATAN KAMU'),
+          const SizedBox(height: 16),
+          RecentNotesCarousel(notes: d.recentNotes),
+          const SizedBox(height: 40),
+        ],
 
         // STATISTIK section — editorial rows, no card chrome.
         const SectionHeader(label: 'STATISTIK'),
@@ -170,36 +159,24 @@ class _DashboardPageState extends State<DashboardPage> {
         StatRow(
           value: '${d.totalNotes}',
           label: 'Catatan tersimpan',
-          onTap: () => context.go(Routes.vault),
+          onTap: () => context.push(Routes.notesStats),
         ),
         const ThinDivider(),
         StatRow(
           value: '${d.badgesUnlocked}',
           label: 'Lencana terbuka',
-          onTap: () => context.go(Routes.badges),
+          onTap: () => context.push(Routes.badgesStats),
         ),
         const ThinDivider(),
         StatRow(
           value: d.topTags.isEmpty ? '—' : '#${d.topTags.first.tag}',
           label: 'Tag teratas',
-          onTap: () => context.push(Routes.tags),
-        ),
-        const SizedBox(height: 48),
-
-        // AKSI CEPAT section — one primary CTA, one secondary.
-        const SectionHeader(label: 'AKSI CEPAT'),
-        const SizedBox(height: 16),
-        ActionRow(
-          icon: Icons.add_rounded,
-          label: 'Tulis catatan baru',
-          primary: true,
-          onTap: () => context.push(Routes.addNote),
-        ),
-        const SizedBox(height: 10),
-        ActionRow(
-          icon: Icons.psychology_alt_outlined,
-          label: 'Tanya otak keduamu',
-          onTap: () => context.go(Routes.chat),
+          onTap: d.topTags.isEmpty
+              ? null
+              : () => context.push(
+                    Routes.tagDetail,
+                    extra: d.topTags.first.tag,
+                  ),
         ),
         const SizedBox(height: 48),
 
@@ -207,8 +184,8 @@ class _DashboardPageState extends State<DashboardPage> {
         if (d.topTags.isNotEmpty) ...[
           SectionHeader(
             label: 'PETA PENGETAHUAN',
-            trailingLabel: 'KELOLA',
-            onTrailing: () => context.push(Routes.tags),
+            trailingLabel: 'DETAIL',
+            onTrailing: () => context.push(Routes.knowledgeMap),
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -216,7 +193,7 @@ class _DashboardPageState extends State<DashboardPage> {
             runSpacing: 10,
             children: d.topTags.map((tc) {
               return GestureDetector(
-                onTap: () => context.push(Routes.tags),
+                onTap: () => context.push(Routes.tagDetail, extra: tc.tag),
                 child: Text(
                   '#${tc.tag}  ${tc.count}',
                   style: GoogleFonts.inter(
@@ -232,35 +209,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 48),
         ],
-
-        // TERSIMPAN TERAKHIR — list rows with thin separators.
-        SectionHeader(
-          label: 'TERSIMPAN TERAKHIR',
-          trailingLabel: 'SEMUA',
-          onTrailing: () => context.go(Routes.vault),
-        ),
-        const SizedBox(height: 8),
-        if (d.recentNotes.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              'Belum ada catatan. Simpan tautan pertamamu dan dapatkan 10 XP.',
-              style: context.textStyles.bodyMedium,
-            ),
-          )
-        else
-          ...List.generate(d.recentNotes.length, (i) {
-            final n = d.recentNotes[i];
-            return Column(
-              children: [
-                _NoteRow(
-                  note: n,
-                  onTap: () => context.push('/vault/${n.id}', extra: n),
-                ),
-                if (i != d.recentNotes.length - 1) const ThinDivider(),
-              ],
-            );
-          }),
       ],
     );
   }
@@ -268,11 +216,27 @@ class _DashboardPageState extends State<DashboardPage> {
   // ─── helpers ──────────────────────────────────────────────────────────
 
   static const _hari = [
-    'MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'
+    'MINGGU',
+    'SENIN',
+    'SELASA',
+    'RABU',
+    'KAMIS',
+    'JUMAT',
+    'SABTU'
   ];
   static const _bulan = [
-    'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
-    'JUL', 'AGT', 'SEP', 'OKT', 'NOV', 'DES'
+    'JAN',
+    'FEB',
+    'MAR',
+    'APR',
+    'MEI',
+    'JUN',
+    'JUL',
+    'AGT',
+    'SEP',
+    'OKT',
+    'NOV',
+    'DES'
   ];
 
   String _formatToday() {
@@ -288,97 +252,3 @@ class _DashboardPageState extends State<DashboardPage> {
     return 'Selamat malam';
   }
 }
-
-/// Compact magazine-style note row: title + meta + outward arrow.
-class _NoteRow extends StatelessWidget {
-  final NoteEntity note;
-  final VoidCallback onTap;
-  const _NoteRow({required this.note, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final title = (note.title?.trim().isNotEmpty ?? false)
-        ? note.title!
-        : '(Tanpa judul)';
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _meta(note),
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Icon(Icons.arrow_outward_rounded,
-                  size: 16, color: AppColors.textTertiary),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _meta(NoteEntity n) {
-    final parts = <String>[
-      _sourceLabel(n.sourceType),
-      _relTime(n.createdAt),
-      if (n.tags.isNotEmpty) '#${n.tags.first}',
-    ];
-    return parts.join('  ·  ');
-  }
-
-  String _sourceLabel(String s) {
-    switch (s) {
-      case 'youtube':
-        return 'YouTube';
-      case 'tiktok':
-        return 'TikTok';
-      case 'instagram':
-        return 'Instagram';
-      case 'x':
-        return 'X';
-      case 'article':
-        return 'Artikel';
-      default:
-        return 'Tautan';
-    }
-  }
-
-  String _relTime(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'baru saja';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} mnt';
-    if (diff.inHours < 24) return '${diff.inHours} jam';
-    if (diff.inDays < 7) return '${diff.inDays} hari';
-    if (diff.inDays < 30) return '${diff.inDays ~/ 7} minggu';
-    return '${diff.inDays ~/ 30} bulan';
-  }
-}
-

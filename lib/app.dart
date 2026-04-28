@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'core/di/injection_container.dart';
 import 'core/router/app_router.dart';
 import 'core/router/route_names.dart';
+import 'core/services/home_widget_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/share_intent_service.dart';
 import 'core/theme/app_theme.dart';
@@ -38,6 +39,7 @@ class _IngatanKuAppState extends State<IngatanKuApp> {
   late final AuthBloc _authBloc;
   late final GoRouter _router;
   StreamSubscription<String>? _shareSub;
+  StreamSubscription<Uri?>? _widgetTapSub;
 
   @override
   void initState() {
@@ -57,11 +59,23 @@ class _IngatanKuAppState extends State<IngatanKuApp> {
       _waitForAuthThenPush(pending);
     }
     // Warm: every subsequent share while the app is open.
-    _shareSub = ShareIntentService.instance.sharedUrlStream.listen(_handleSharedUrl);
+    _shareSub =
+        ShareIntentService.instance.sharedUrlStream.listen(_handleSharedUrl);
+
+    // Cold-start: if the user launched the app by tapping the homescreen
+    // widget, route to the matching page after auth resolves.
+    HomeWidgetService.instance.consumeColdStartUri().then((uri) {
+      if (uri != null) _waitForAuthThenHandleWidgetUri(uri);
+    });
+    // Warm: every subsequent widget tap while the app is open.
+    _widgetTapSub = HomeWidgetService.instance.tapStream.listen((uri) {
+      if (uri != null) _handleWidgetUri(uri);
+    });
   }
 
   void _handleSharedUrl(String url) {
-    debugPrint('[App] _handleSharedUrl: $url (authState=${_authBloc.state.runtimeType})');
+    debugPrint(
+        '[App] _handleSharedUrl: $url (authState=${_authBloc.state.runtimeType})');
     if (_authBloc.state is Authenticated) {
       _pushAddNote(url);
     } else {
@@ -97,9 +111,55 @@ class _IngatanKuAppState extends State<IngatanKuApp> {
     });
   }
 
+  // ──────────────────────────────────────────────────────────────
+  //  Homescreen widget deep-link handling
+  // ──────────────────────────────────────────────────────────────
+
+  /// Decodes a widget URI and pushes the matching route. The URI scheme is
+  /// `ingatanku://` and the host distinguishes the kind of intent:
+  ///   * `ingatanku://note?id=<noteId>`  → open the note detail page
+  ///   * `ingatanku://capture`           → open the add-note page
+  void _handleWidgetUri(Uri uri) {
+    debugPrint('[App] _handleWidgetUri: $uri');
+    if (uri.scheme != 'ingatanku') return;
+    switch (uri.host) {
+      case 'note':
+        final id = uri.queryParameters['id'];
+        if (id != null && id.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _router.push('/vault/$id');
+          });
+        }
+        break;
+      case 'capture':
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _router.push(Routes.addNote);
+        });
+        break;
+    }
+  }
+
+  /// Same as [_handleWidgetUri] but waits for the user to be authenticated
+  /// first — used on cold-start where the app might not have resolved the
+  /// session yet.
+  void _waitForAuthThenHandleWidgetUri(Uri uri) {
+    if (_authBloc.state is Authenticated) {
+      _handleWidgetUri(uri);
+      return;
+    }
+    late final StreamSubscription sub;
+    sub = _authBloc.stream.listen((s) {
+      if (s is Authenticated) {
+        sub.cancel();
+        _handleWidgetUri(uri);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _shareSub?.cancel();
+    _widgetTapSub?.cancel();
     _authBloc.close();
     super.dispose();
   }
@@ -116,7 +176,7 @@ class _IngatanKuAppState extends State<IngatanKuApp> {
             addNote: sl<AddNote>(),
             deleteNote: sl<DeleteNote>(),
             updateNote: sl<UpdateNote>(),
-          ),
+          )..add(VaultLoadRequested()),
         ),
         BlocProvider(
           create: (_) => ChatBloc(
@@ -125,16 +185,27 @@ class _IngatanKuAppState extends State<IngatanKuApp> {
           ),
         ),
         BlocProvider(
-          create: (_) =>
-              DashboardCubit(sl<DashboardRepository>(), sl<NotificationService>()),
+          create: (_) => DashboardCubit(
+              sl<DashboardRepository>(), sl<NotificationService>()),
         ),
         BlocProvider(create: (_) => BadgesCubit(sl<BadgeRepository>())),
       ],
-      child: MaterialApp.router(
-        title: 'IngatanKu',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.dark,
-        routerConfig: router,
+      child: BlocListener<VaultBloc, VaultState>(
+        // Whenever the vault settles into a loaded state, push the latest
+        // top-3 notes into the homescreen widget. The service de-dupes via
+        // a fingerprint, so this is cheap to call on every state change.
+        listenWhen: (prev, curr) => curr is VaultLoaded,
+        listener: (_, state) {
+          if (state is VaultLoaded) {
+            HomeWidgetService.instance.pushRecentNotes(state.notes);
+          }
+        },
+        child: MaterialApp.router(
+          title: 'IngatanKu',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.dark,
+          routerConfig: router,
+        ),
       ),
     );
   }

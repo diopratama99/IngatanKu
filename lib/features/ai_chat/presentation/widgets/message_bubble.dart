@@ -75,7 +75,7 @@ class MessageBubble extends StatelessWidget {
                 ),
                 code: GoogleFonts.jetBrainsMono(
                   fontSize: 13,
-                  backgroundColor: AppColors.bgTertiary.withOpacity(0.5),
+                  backgroundColor: AppColors.bgTertiary.withValues(alpha: 0.5),
                   color: AppColors.accent,
                 ),
                 codeblockDecoration: BoxDecoration(
@@ -93,7 +93,7 @@ class MessageBubble extends StatelessWidget {
               const SizedBox(height: 14),
               Container(
                 height: 1,
-                color: AppColors.surfaceStroke.withOpacity(0.5),
+                color: AppColors.surfaceStroke.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 10),
               Text(

@@ -53,6 +53,9 @@ dependencies:
   # Receive shared content (URL, text) from other apps
   receive_sharing_intent: ^1.8.0
 
+  # Homescreen widget bridge (Android AppWidgetProvider; iOS WidgetKit on demand)
+  home_widget: ^0.7.0
+
   # Local notifications
   flutter_local_notifications: ^17.2.2
   timezone: ^0.9.4
@@ -63,6 +66,35 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   bloc_test: ^9.1.7
   mocktail: ^1.0.4
+
+  # Generates platform-specific app launcher icons (Android mipmap + adaptive
+  # icons, iOS AppIcon.appiconset, web favicon) from a single source PNG.
+  # Run with: `dart run flutter_launcher_icons`
+  flutter_launcher_icons: ^0.13.1
+
+# ─── App launcher icon configuration ───────────────────────────────
+# Single source PNG (1024×1024) — `app_icon.png` already includes ~25%
+# safe-zone padding around the IK monogram, so it works as both the iOS
+# launcher icon and the Android adaptive-icon foreground without any
+# additional resizing. The solid `#6366F1` background fills the gap when
+# Android's launcher mask clips past the PNG's edges.
+#
+# If a future source PNG is full-bleed (no safe-zone padding), generate a
+# padded foreground via `python3 tools/pad_icon.py` and switch
+# `adaptive_icon_foreground` to point at the generated file.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  adaptive_icon_background: "#6366F1"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+    background_color: "#0F172A"
+    theme_color: "#6366F1"
 
 flutter:
   uses-material-design: true

@@ -45,7 +45,7 @@ class ThinDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         height: 1,
-        color: AppColors.surfaceStroke.withOpacity(opacity),
+        color: AppColors.surfaceStroke.withValues(alpha: opacity),
       );
 }
 
@@ -72,7 +72,7 @@ class SectionHeader extends StatelessWidget {
         Expanded(
           child: Container(
             height: 1,
-            color: AppColors.surfaceStroke.withOpacity(0.5),
+            color: AppColors.surfaceStroke.withValues(alpha: 0.5),
           ),
         ),
         if (trailingLabel != null) ...[
@@ -240,7 +240,7 @@ class ActionRow extends StatelessWidget {
                 ),
               ),
               Icon(Icons.arrow_forward_rounded,
-                  size: 16, color: fg.withOpacity(0.75)),
+                  size: 16, color: fg.withValues(alpha: 0.75)),
             ],
           ),
         ),

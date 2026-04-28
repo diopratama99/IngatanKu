@@ -111,9 +111,9 @@ class _SelectedTagChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.12),
+        color: AppColors.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.primary.withOpacity(0.35)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
