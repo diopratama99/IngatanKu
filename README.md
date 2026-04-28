@@ -250,30 +250,6 @@ Diberikan otomatis oleh logika di klien berdasarkan `content_vault`:
 
 ---
 
-## Keamanan
-
-Project ini dirancang aman untuk di-push ke repo publik. Catatan penting:
-
-- **Tidak ada secret di source code.** Semua kredensial di-inject lewat `--dart-define-from-file=supabase.json` saat build, bukan di-bundle.
-- **`supabase.json`** (kredensial Flutter) dan **`android/key.properties`** (signing key Android) sudah di-gitignore. Hanya `supabase.example.json` yang ikut.
-- **Service role key Supabase** hanya hidup di environment Edge Functions (`Deno.env.get`) — tidak pernah dipakai di klien Flutter. Klien hanya pakai *anon key* yang aman dipublikasikan.
-- **OpenAI API key** disimpan sebagai Supabase secret, dipakai *server-side* di `ask-brain` dan `embed-note`. Klien tidak pernah memegang API key LLM.
-- **Row Level Security** aktif di semua tabel user — lihat `supabase/migrations/20260101000000_init.sql`.
-
-### Sebelum push ke GitHub
-
-Jalankan sanity check:
-
-```powershell
-# pastikan tidak ada file kredensial yang ke-stage
-git status
-git ls-files | Select-String -Pattern "supabase\.json|key\.properties|\.keystore|\.jks|\.env$"
-```
-
-Output kedua perintah harus **kosong** (kecuali `supabase.example.json`).
-
----
-
 ## Skrip Berguna
 
 ```bash
