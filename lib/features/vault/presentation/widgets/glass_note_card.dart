@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/markdown_strip.dart';
 import '../../domain/entities/note_entity.dart';
 
 /// Editorial note card. Name kept for backwards compatibility with any
@@ -44,9 +45,11 @@ class GlassNoteCard extends StatelessWidget {
     final title = (note.title?.trim().isNotEmpty ?? false)
         ? note.title!
         : '(Tanpa judul)';
-    final preview = note.manualNotes.length > 140
-        ? '${note.manualNotes.substring(0, 140)}…'
-        : note.manualNotes;
+    // Strip markdown markers before the 140-char preview so the card
+    // doesn't show raw `**bold**` / `- list` / `# heading` syntax.
+    final stripped = stripMarkdown(note.manualNotes);
+    final preview =
+        stripped.length > 140 ? '${stripped.substring(0, 140)}…' : stripped;
 
     return InkWell(
       onTap: onTap,

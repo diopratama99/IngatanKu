@@ -13,17 +13,25 @@ import '../../features/dashboard/data/repositories/dashboard_repository_impl.dar
 import '../../features/dashboard/domain/repositories/dashboard_repository.dart';
 import '../../features/gamification/data/repositories/badge_repository_impl.dart';
 import '../../features/gamification/domain/repositories/badge_repository.dart';
+import '../../features/quiz/data/datasources/quiz_remote_datasource.dart';
+import '../../features/quiz/data/repositories/quiz_repository_impl.dart';
+import '../../features/quiz/domain/repositories/quiz_repository.dart';
+import '../../features/vault/data/datasources/auto_summarize_remote_datasource.dart';
 import '../../features/vault/data/datasources/metadata_remote_datasource.dart';
 import '../../features/vault/data/datasources/vault_remote_datasource.dart';
+import '../../features/vault/data/repositories/auto_summarize_repository_impl.dart';
 import '../../features/vault/data/repositories/share_repository_impl.dart';
 import '../../features/vault/data/repositories/vault_repository_impl.dart';
+import '../../features/vault/domain/repositories/auto_summarize_repository.dart';
 import '../../features/vault/domain/repositories/share_repository.dart';
 import '../../features/vault/domain/repositories/vault_repository.dart';
 import '../../features/vault/domain/usecases/add_note.dart';
+import '../../features/vault/domain/usecases/auto_summarize.dart';
 import '../../features/vault/domain/usecases/delete_note.dart';
 import '../../features/vault/domain/usecases/get_notes.dart';
 import '../../features/vault/domain/usecases/update_note.dart';
 import '../network/supabase_client.dart';
+import '../services/media_download_service.dart';
 import '../services/notification_service.dart';
 import '../services/voice_input_service.dart';
 
@@ -53,9 +61,16 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => DeleteNote(sl()));
   sl.registerLazySingleton(() => UpdateNote(sl()));
 
+  // Auto-summarize (write-aid for AddNote/EditNote)
+  sl.registerLazySingleton(() => AutoSummarizeRemoteDataSource(sl()));
+  sl.registerLazySingleton<AutoSummarizeRepository>(
+      () => AutoSummarizeRepositoryImpl(sl()));
+  sl.registerLazySingleton(() => AutoSummarize(sl()));
+
   // Services
   sl.registerLazySingleton(() => VoiceInputService());
   sl.registerLazySingleton(() => NotificationService.instance);
+  sl.registerLazySingleton(() => MediaDownloadService(sl()));
 
   // Chat
   sl.registerLazySingleton(() => ChatRemoteDataSource(sl()));
@@ -67,4 +82,8 @@ Future<void> initDependencies() async {
 
   // Badges
   sl.registerLazySingleton<BadgeRepository>(() => BadgeRepositoryImpl(sl()));
+
+  // Weekly Quiz
+  sl.registerLazySingleton(() => QuizRemoteDataSource(sl()));
+  sl.registerLazySingleton<QuizRepository>(() => QuizRepositoryImpl(sl()));
 }

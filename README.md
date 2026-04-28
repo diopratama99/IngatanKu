@@ -30,8 +30,11 @@ UI-nya editorial: tipografi besar, hierarki tegas, satu warna aksen — bahasa v
 |---|---|
 | **Brankas Catatan** | Simpan URL + catatan markdown + tag. Auto-deteksi sumber (YouTube, TikTok, IG, X, artikel). |
 | **Auto URL Preview** | Tempel link, Edge Function `fetch-meta` ambil judul, deskripsi, dan thumbnail otomatis. |
+| **Auto-Fill ✨** | Tap ikon sparkle di toolbar → LLM streaming generate catatan markdown dari transcript YouTube, isi artikel, atau OG metadata. Locale toggle ID/EN. |
 | **Voice-to-Note** | Tap mikrofon di halaman Tambah Catatan, dikte langsung jadi teks (on-device speech-to-text). |
 | **Tanya Otak Kedua** | RAG chat di atas catatanmu sendiri. Streaming jawaban via Server-Sent Events. |
+| **Download Video/Foto** | Simpan video YouTube/TikTok/IG/X ke perangkat untuk akses offline. Backed by self-hosted [Cobalt](https://github.com/imputnet/cobalt) v10 dengan fallback OG-image scraper. |
+| **Quiz Mingguan** | 5 pertanyaan multiple choice di-generate LLM dari catatan 7 hari terakhir. Skor + XP reward + badge `WEEKLY_REVIEWER`. Idempoten per minggu (Senin anchor). |
 | **Berbagi Publik** | Generate tautan baca-saja (`/share/:token`) untuk catatan yang ingin kamu bagikan. |
 | **Share Intent** | Klik tombol Bagikan dari aplikasi lain (browser, IG, dll) langsung masuk ke alur Tambah Catatan. |
 | **Onboarding 4 Slide** | Welcome flow editorial untuk pengguna baru pasca-OTP — brand mark, capture, ask, streak. Existing user di-skip langsung ke `/dashboard`. |
@@ -40,7 +43,7 @@ UI-nya editorial: tipografi besar, hierarki tegas, satu warna aksen — bahasa v
 | **Notes Stats** | Breakdown analitik atas brankas: per sumber, per periode (minggu / bulan / lampau), per tag. |
 | **Badges Stats** | Halaman detail progress lencana — dipasangkan ke setiap badge dengan progress bar tipis. |
 | **Streak & Reminder** | XP, level, dan notifikasi lokal harian agar konsistensi belajar terjaga. |
-| **7 Lencana Bawaan** | Diberikan otomatis berdasarkan pola perilaku (lihat tabel di bawah). |
+| **8 Lencana Bawaan** | Diberikan otomatis berdasarkan pola perilaku (lihat tabel di bawah). |
 | **Android Home Widget** | Widget homescreen yang menampilkan 3 catatan terakhir + pintasan `Catat baru`. RemoteViews-safe layout, di-update lewat `home_widget` plugin. |
 | **Halaman Privacy & About** | Static pages editorial — kebijakan data + ringkasan stack, dipasang di Profile. |
 | **Brand Mark** | Logo IK monogram (indigo gradient + white serif-grotesque K) — sama persis di onboarding slide pertama, app icon (iOS rounded square + Android adaptive), dan splash. |
@@ -66,6 +69,9 @@ UI-nya editorial: tipografi besar, hierarki tegas, satu warna aksen — bahasa v
 | `fetch-meta` | Ambil OG-tags dari URL eksternal | Dipanggil dari client saat tempel link |
 | `embed-note` | Generate embedding vector untuk catatan baru | Database webhook `INSERT` di `content_vault` |
 | `ask-brain` | RAG: cari catatan relevan + stream jawaban LLM | Dipanggil dari halaman Chat |
+| `auto-summarize` | Fetch konten URL (transcript YouTube / artikel / OG meta) lalu stream catatan markdown via SSE | Tap ✨ di toolbar Tambah Catatan |
+| `resolve-media` | Wrap Cobalt API untuk resolve URL ke direct download link, fallback OG-image | Tap Download di card SIMPAN OFFLINE |
+| `generate-weekly-quiz` | Bangun 5 pertanyaan MC via LLM dari catatan 7 hari terakhir, persist ke `weekly_quizzes` | Buka section Quiz Mingguan di dashboard |
 
 ---
 
@@ -94,13 +100,14 @@ lib/
 │   ├── vault/         # CRUD catatan, tag mgmt, share, knowledge map, stats
 │   ├── ai_chat/       # RAG chat dengan SSE streaming
 │   ├── dashboard/     # XP, streak, daftar terbaru, level ring
-│   ├── gamification/  # 7 lencana + halaman progress
+│   ├── gamification/  # 8 lencana + halaman progress
+│   ├── quiz/          # Quiz mingguan dari catatan 7 hari
 │   └── profile/       # Pengaturan akun, privacy, about, sign-out
 ├── app.dart           # MaterialApp + global providers
 └── main.dart          # Entry point + DI bootstrap
 ```
 
-Skema database (3 migrasi di `supabase/migrations/`):
+Skema database (4 migrasi di `supabase/migrations/`):
 
 | Tabel | Kegunaan |
 |---|---|
@@ -110,6 +117,7 @@ Skema database (3 migrasi di `supabase/migrations/`):
 | `user_badges` | Lencana yang sudah didapat user |
 | `chat_messages` | Riwayat chat (per user) |
 | `share_links` | Token untuk berbagi catatan publik |
+| `weekly_quizzes` | Quiz mingguan tergenerate (questions JSONB, jawaban user, skor) |
 
 ---
 
@@ -170,7 +178,12 @@ supabase secrets set OPENAI_EMBED_MODEL=text-embedding-3-small
 supabase functions deploy ask-brain
 supabase functions deploy embed-note --no-verify-jwt
 supabase functions deploy fetch-meta
+supabase functions deploy auto-summarize
+supabase functions deploy resolve-media
+supabase functions deploy generate-weekly-quiz
 ```
+
+> Untuk **self-hosted Supabase** (docker-compose), edge function di-mount dari `volumes/functions/`. Setelah copy folder fungsi ke sana, tambah env baru ke blok `environment:` service `functions` di `docker-compose.yml` (mis. `COBALT_API_BASE: ${COBALT_API_BASE}`) lalu `docker compose up -d functions` (bukan cuma restart — perlu recreate).
 
 ### 5. Pasang Database Webhook
 
@@ -187,6 +200,33 @@ Di Supabase Dashboard → **Database → Webhooks → Create**:
 | HTTP Headers | `Content-Type: application/json` |
 
 Tujuannya: setiap catatan baru otomatis di-embed jadi vector tanpa blocking UI.
+
+### 6. (Opsional) Self-host Cobalt untuk Download Video/Foto
+
+Fitur **Download Video/Foto** memerlukan instance [Cobalt](https://github.com/imputnet/cobalt) yang reachable dari edge function `resolve-media`. Karena public Cobalt API (`api.cobalt.tools`) sejak v10 tidak menerima request anonim, paling reliable di-self-host.
+
+Minimal setup di server Docker yang sama dengan Supabase:
+
+```bash
+docker run -d \
+  --name cobalt-api \
+  --network supabase_default \
+  --restart unless-stopped \
+  -p 9000:9000 \
+  -e API_URL="https://cobalt.<your-domain>/" \
+  -e DURATION_LIMIT="10800" \
+  ghcr.io/imputnet/cobalt:10
+```
+
+Lalu set env `COBALT_API_BASE` di Supabase secrets / `.env` self-hosted (default fallback `https://api.cobalt.tools` kalau tidak di-set):
+
+```bash
+supabase secrets set COBALT_API_BASE=http://cobalt-api:9000
+```
+
+> `API_URL` di container Cobalt **harus** URL yang HP user bisa reach — untuk tunnel mode (IG/TikTok), Cobalt return URL pakai `API_URL` ini. Pakai Cloudflare Tunnel / domain publik kalau user di luar LAN/Tailscale.
+>
+> Tanpa Cobalt, fitur download masih jalan tapi cuma untuk OG-image / thumbnail (tidak bisa video).
 
 ---
 
@@ -245,7 +285,7 @@ flutter build web --release --dart-define-from-file=supabase.json
 
 ## Lencana Bawaan
 
-Diberikan otomatis oleh logika di klien berdasarkan `content_vault`:
+Diberikan otomatis oleh logika di klien berdasarkan `content_vault`, kecuali `WEEKLY_REVIEWER` yang dibuka via RPC `award_quiz_completion` saat user menyelesaikan Quiz Mingguan.
 
 | Kode | Nama | Pemicu |
 |---|---|---|
@@ -256,6 +296,7 @@ Diberikan otomatis oleh logika di klien berdasarkan `content_vault`:
 | `THE_ORACLE` | The Oracle | 50 pertanyaan ke AI Brain |
 | `POLYGLOT` | The Polyglot | Catatan dari 5 bahasa/framework berbeda |
 | `KNOWLEDGE_CARTOGRAPHER` | Knowledge Cartographer | 25 tag unik dipakai |
+| `WEEKLY_REVIEWER` | Weekly Reviewer | Selesaikan Quiz Mingguan pertama |
 
 ---
 
@@ -285,12 +326,16 @@ flutter clean
 - [x] Notes stats & badges stats pages
 - [x] Android home widget (3 catatan terbaru + shortcut)
 - [x] Brand mark + app icon (IK monogram, iOS rounded square + Android adaptive)
+- [x] Auto-Fill catatan dari URL via LLM streaming
+- [x] Download offline video/foto (Cobalt-backed)
+- [x] Quiz Mingguan dari catatan minggu berjalan
 - [ ] iOS WidgetKit equivalent untuk home widget
 - [ ] Sinkronisasi offline-first dengan Drift
 - [ ] Export catatan ke Obsidian / Markdown ZIP
 - [ ] Voice-to-Note dengan Whisper (di server)
 - [ ] Tag suggestions berbasis embedding (otomatis dari isi catatan)
 - [ ] Tema terang (saat ini hanya gelap)
+- [ ] Cross-device sync untuk file Download (Supabase Storage opsional)
 
 ---
 

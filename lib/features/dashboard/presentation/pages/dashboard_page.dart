@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/extensions.dart';
+import '../../../../features/quiz/presentation/widgets/weekly_quiz_card.dart';
 import '../../../../shared/widgets/editorial.dart';
 import '../../../../shared/widgets/shimmer_loader.dart';
 import '../bloc/dashboard_cubit.dart';
@@ -153,6 +154,11 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 40),
         ],
 
+        // QUIZ MINGGUAN — entry point card; the page itself decides
+        // whether to generate, resume, or show the completed review.
+        const WeeklyQuizCard(),
+        const SizedBox(height: 40),
+
         // STATISTIK section — editorial rows, no card chrome.
         const SectionHeader(label: 'STATISTIK'),
         const SizedBox(height: 8),
@@ -189,19 +195,34 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 16),
           Wrap(
-            spacing: 20,
-            runSpacing: 10,
+            spacing: 22,
+            runSpacing: 14,
             children: d.topTags.map((tc) {
+              // Two-tier styling: hashtag in primary color/weight, count
+              // smaller and tertiary so the eye reads tag-first, count-second
+              // instead of the previous flat "#docker  2" run-on.
               return GestureDetector(
                 onTap: () => context.push(Routes.tagDetail, extra: tc.tag),
-                child: Text(
-                  '#${tc.tag}  ${tc.count}',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ).copyWith(
-                    decorationColor: AppColors.surfaceStroke,
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '#${tc.tag}',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: '  ${tc.count}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );

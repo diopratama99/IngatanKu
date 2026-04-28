@@ -1,15 +1,20 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/config/env.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/services/media_download_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../../../shared/widgets/editorial.dart';
@@ -35,6 +40,14 @@ class NoteDetailPage extends StatelessWidget {
   const NoteDetailPage({super.key, required this.note});
 
   // ── Source helpers ────────────────────────────────────────────
+
+  /// Returns true for source types where a media artifact (video/photo) is
+  /// likely to exist and worth offering a download for. Articles fall
+  /// through to false because their og:image is usually a hero thumbnail,
+  /// not the content itself.
+  bool _supportsDownload(String s) {
+    return s == 'youtube' || s == 'tiktok' || s == 'instagram' || s == 'x';
+  }
 
   String _sourceLabel(String s) {
     switch (s) {
@@ -327,6 +340,14 @@ class NoteDetailPage extends StatelessWidget {
               onTap: _openUrl,
             ),
 
+            // ── Media download card (only for media-bearing sources) ──
+            // Article URLs rarely have a downloadable artifact — hide the
+            // card there to avoid suggesting an action that often fails.
+            if (_supportsDownload(note.sourceType)) ...[
+              const SizedBox(height: 12),
+              _MediaDownloadCard(note: note),
+            ],
+
             const SizedBox(height: 30),
             const ThinDivider(),
             const SizedBox(height: 26),
@@ -525,6 +546,320 @@ class _SourceUrlCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Download card — resolves the source URL via `resolve-media`,
+// streams the file to the app sandbox via Dio, then offers Open /
+// Bagikan / Hapus buttons. Reflects 4 visual states:
+//   • checking — initial existence probe (rendered as nothing).
+//   • idle — no local file; primary "Download" CTA.
+//   • downloading — linear progress + Batal button.
+//   • saved — green check + size + Buka/Bagikan/Hapus.
+// ════════════════════════════════════════════════════════════════
+class _MediaDownloadCard extends StatefulWidget {
+  final NoteEntity note;
+  const _MediaDownloadCard({required this.note});
+
+  @override
+  State<_MediaDownloadCard> createState() => _MediaDownloadCardState();
+}
+
+class _MediaDownloadCardState extends State<_MediaDownloadCard> {
+  late final MediaDownloadService _svc = sl<MediaDownloadService>();
+
+  bool _checking = true;
+  File? _localFile;
+  int _localSize = 0;
+  bool _downloading = false;
+  double _progress = 0.0;
+  CancelToken? _cancelToken;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExisting();
+  }
+
+  @override
+  void dispose() {
+    _cancelToken?.cancel('disposed');
+    super.dispose();
+  }
+
+  Future<void> _checkExisting() async {
+    final f = await _svc.existingFile(widget.note.id);
+    if (!mounted) return;
+    setState(() {
+      _localFile = f;
+      _localSize = f?.lengthSync() ?? 0;
+      _checking = false;
+    });
+  }
+
+  Future<void> _download() async {
+    if (_downloading) return;
+    setState(() {
+      _downloading = true;
+      _progress = 0.0;
+    });
+    _cancelToken = CancelToken();
+    try {
+      final resolution = await _svc.resolve(widget.note.url);
+      final f = await _svc.download(
+        noteId: widget.note.id,
+        resolution: resolution,
+        cancelToken: _cancelToken,
+        onProgress: (p) {
+          if (mounted) setState(() => _progress = p);
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _localFile = f;
+        _localSize = f.lengthSync();
+        _downloading = false;
+      });
+    } on MediaDownloadException catch (e) {
+      if (!mounted) return;
+      setState(() => _downloading = false);
+      context.showSnack('Download gagal: ${e.message}', error: true);
+    } catch (e) {
+      if (!mounted) return;
+      // Cancel races: when the user taps Batal, dio raises a cancel error
+      // that we intentionally swallow without an alarming SnackBar.
+      if (e is DioException && CancelToken.isCancel(e)) {
+        setState(() => _downloading = false);
+        return;
+      }
+      setState(() => _downloading = false);
+      context.showSnack('Download gagal: $e', error: true);
+    }
+  }
+
+  void _cancelDownload() {
+    _cancelToken?.cancel('user');
+  }
+
+  Future<void> _open() async {
+    final f = _localFile;
+    if (f == null) return;
+    final res = await OpenFilex.open(f.path);
+    if (res.type != ResultType.done && mounted) {
+      context.showSnack('Tidak ada app yang bisa membuka file ini',
+          error: true);
+    }
+  }
+
+  Future<void> _share() async {
+    final f = _localFile;
+    if (f == null) return;
+    await Share.shareXFiles([XFile(f.path)],
+        text: widget.note.title ?? 'Lihat ini');
+  }
+
+  Future<void> _delete() async {
+    await _svc.delete(widget.note.id);
+    if (!mounted) return;
+    setState(() {
+      _localFile = null;
+      _localSize = 0;
+    });
+    context.showSnack('File lokal dihapus');
+  }
+
+  static String _humanSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checking) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: AppColors.bgSecondary,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceStroke, width: 1),
+      ),
+      child: _downloading
+          ? _buildDownloading()
+          : _localFile != null
+              ? _buildSaved()
+              : _buildIdle(),
+    );
+  }
+
+  Widget _buildIdle() {
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.download_rounded,
+              size: 18, color: AppColors.accent),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('SIMPAN OFFLINE', style: eyebrowStyle()),
+              const SizedBox(height: 3),
+              Text(
+                'Download video/foto ke perangkat ini',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        TextButton(
+          onPressed: _download,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.accent,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
+          child: Text(
+            'DOWNLOAD',
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: AppColors.accent,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDownloading() {
+    final pct = (_progress * 100).round();
+    final hasPct = _progress > 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.6,
+                color: AppColors.accent,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                hasPct ? 'Mengunduh… $pct%' : 'Mempersiapkan…',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: _cancelDownload,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'BATAL',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: hasPct ? _progress : null,
+            backgroundColor: AppColors.bgTertiary.withValues(alpha: 0.4),
+            color: AppColors.accent,
+            minHeight: 3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaved() {
+    final size = _localSize > 0 ? _humanSize(_localSize) : '—';
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.check_circle_outline_rounded,
+              size: 18, color: AppColors.success),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('TERSIMPAN OFFLINE', style: eyebrowStyle()),
+              const SizedBox(height: 3),
+              Text(
+                size,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'Buka',
+          icon: const Icon(Icons.open_in_new_rounded, size: 18),
+          color: AppColors.textSecondary,
+          onPressed: _open,
+        ),
+        IconButton(
+          tooltip: 'Bagikan',
+          icon: const Icon(Icons.ios_share_rounded, size: 18),
+          color: AppColors.textSecondary,
+          onPressed: _share,
+        ),
+        IconButton(
+          tooltip: 'Hapus dari perangkat',
+          icon: const Icon(Icons.delete_outline_rounded, size: 18),
+          color: AppColors.danger,
+          onPressed: _delete,
+        ),
+      ],
     );
   }
 }

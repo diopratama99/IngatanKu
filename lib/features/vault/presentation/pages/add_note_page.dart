@@ -14,7 +14,9 @@ import '../../../../shared/widgets/editorial.dart';
 import '../../data/datasources/metadata_remote_datasource.dart';
 import '../../data/models/url_metadata.dart';
 import '../../domain/entities/note_entity.dart';
+import '../../domain/repositories/auto_summarize_repository.dart';
 import '../../domain/usecases/add_note.dart';
+import '../../domain/usecases/auto_summarize.dart';
 import '../../domain/usecases/update_note.dart';
 import '../bloc/vault_bloc.dart';
 import '../widgets/locale_toggle_chip.dart';
@@ -57,6 +59,11 @@ class _AddNotePageState extends State<AddNotePage>
   String _notesBeforeVoice = '';
   String _voiceLocale = 'id_ID';
 
+  // Auto-fill
+  StreamSubscription<AutoSummarizeEvent>? _autoFillSub;
+  bool _autoFilling = false;
+  String? _autoFillHint;
+
   bool get _isEdit => widget.existingNote != null;
 
   @override
@@ -83,6 +90,7 @@ class _AddNotePageState extends State<AddNotePage>
   @override
   void dispose() {
     _debounce?.cancel();
+    _autoFillSub?.cancel();
     _urlCtrl.removeListener(_onUrlChanged);
     _urlCtrl.dispose();
     _titleCtrl.dispose();
@@ -129,9 +137,8 @@ class _AddNotePageState extends State<AddNotePage>
   void _onVoiceTranscript(String text, bool isFinal) {
     if (text.isEmpty) return;
     setState(() {
-      final base = _notesBeforeVoice.isEmpty
-          ? text
-          : '$_notesBeforeVoice $text';
+      final base =
+          _notesBeforeVoice.isEmpty ? text : '$_notesBeforeVoice $text';
       _notesCtrl.text = base;
       _notesCtrl.selection =
           TextSelection.collapsed(offset: _notesCtrl.text.length);
@@ -145,10 +152,121 @@ class _AddNotePageState extends State<AddNotePage>
     _notesBeforeVoice = _notesCtrl.text;
   }
 
+  // ─── Auto-fill ──────────────────────────────────────────────────
+  // Streams a markdown draft from the auto-summarize Edge Function and
+  // appends each token to the notes field as it arrives. If the user has
+  // already drafted >10 chars we ask before discarding their input.
+  Future<void> _runAutoFill() async {
+    if (_autoFilling) return;
+    final url = _urlCtrl.text.trim();
+    if (url.isEmpty || !url.startsWith('http')) {
+      context.showSnack('Isi URL valid dulu', error: true);
+      return;
+    }
+    final existing = _notesCtrl.text.trim();
+    if (existing.length > 10) {
+      final ok = await _confirmReplace();
+      if (!ok || !mounted) return;
+    }
+    _notesCtrl.clear();
+    setState(() {
+      _autoFilling = true;
+      _autoFillHint = 'Memproses…';
+    });
+
+    _autoFillSub = sl<AutoSummarize>()(url: url).listen(
+      (event) {
+        if (!mounted) return;
+        if (event is AutoSummarizeMeta) {
+          setState(() => _autoFillHint =
+              '${event.contentLabel} ditemukan, menyusun catatan…');
+        } else if (event is AutoSummarizeToken) {
+          // Append directly via .text — TextField will rebuild and scroll
+          // its inner view to follow the cursor.
+          _notesCtrl.text = _notesCtrl.text + event.token;
+          _notesCtrl.selection =
+              TextSelection.collapsed(offset: _notesCtrl.text.length);
+        } else if (event is AutoSummarizeDone) {
+          setState(() {
+            _autoFilling = false;
+            _autoFillHint = null;
+          });
+        } else if (event is AutoSummarizeError) {
+          context.showSnack('Auto-fill gagal: ${event.message}', error: true);
+          setState(() {
+            _autoFilling = false;
+            _autoFillHint = null;
+          });
+        }
+      },
+      onError: (e) {
+        if (!mounted) return;
+        context.showSnack('Auto-fill gagal: $e', error: true);
+        setState(() {
+          _autoFilling = false;
+          _autoFillHint = null;
+        });
+      },
+      onDone: () {
+        if (!mounted) return;
+        if (_autoFilling) {
+          setState(() {
+            _autoFilling = false;
+            _autoFillHint = null;
+          });
+        }
+      },
+    );
+  }
+
+  Future<bool> _confirmReplace() async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSecondary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: AppColors.surfaceStroke),
+        ),
+        title: Text(
+          'Ganti catatan saat ini?',
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'Auto-fill akan menghapus draft kamu dan menggantinya dengan catatan baru dari URL.',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            height: 1.5,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style:
+                TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            child: const Text('Ganti'),
+          ),
+        ],
+      ),
+    );
+    return res ?? false;
+  }
+
   void _save() {
     if (!_formKey.currentState!.validate()) return;
     final url = _urlCtrl.text.trim();
-    final title = _titleCtrl.text.trim().isEmpty ? null : _titleCtrl.text.trim();
+    final title =
+        _titleCtrl.text.trim().isEmpty ? null : _titleCtrl.text.trim();
     final notes = _notesCtrl.text.trim();
     if (_isEdit) {
       context.read<VaultBloc>().add(
@@ -202,9 +320,7 @@ class _AddNotePageState extends State<AddNotePage>
             IconButton(
               tooltip: _previewMode ? 'Sunting' : 'Pratinjau',
               icon: Icon(
-                _previewMode
-                    ? Icons.edit_outlined
-                    : Icons.visibility_outlined,
+                _previewMode ? Icons.edit_outlined : Icons.visibility_outlined,
                 size: 20,
               ),
               onPressed: () => setState(() => _previewMode = !_previewMode),
@@ -289,10 +405,47 @@ class _AddNotePageState extends State<AddNotePage>
                       ),
                     ),
                     const SizedBox(width: 12),
+                    // Auto-fill — streams an LLM draft into the notes field
+                    // based on whatever URL the user typed.
+                    Tooltip(
+                      message:
+                          _autoFilling ? 'Memproses…' : 'Auto-fill dari URL',
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: _autoFilling ? null : _runAutoFill,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _autoFilling
+                                  ? AppColors.primary
+                                  : AppColors.surfaceStroke,
+                            ),
+                          ),
+                          child: _autoFilling
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.6,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.auto_awesome_outlined,
+                                  size: 18,
+                                  color: AppColors.textSecondary,
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     LocaleToggleChip(
                       localeId: _voiceLocale,
-                      onChanged: (loc) =>
-                          setState(() => _voiceLocale = loc),
+                      onChanged: (loc) => setState(() => _voiceLocale = loc),
                     ),
                     const SizedBox(width: 8),
                     VoiceInputButton(
@@ -303,29 +456,63 @@ class _AddNotePageState extends State<AddNotePage>
                     ),
                   ],
                 ),
+                if (_autoFillHint != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.28),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.4,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _autoFillHint!,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
                   child: _previewMode
                       ? Container(
                           key: const ValueKey('preview'),
-                          constraints:
-                              const BoxConstraints(minHeight: 180),
+                          constraints: const BoxConstraints(minHeight: 180),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.bgSecondary.withValues(alpha: 0.5),
+                            color: AppColors.bgSecondary.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(8),
-                            border:
-                                Border.all(color: AppColors.surfaceStroke),
+                            border: Border.all(color: AppColors.surfaceStroke),
                           ),
                           child: MarkdownBody(
                             data: _notesCtrl.text.isEmpty
                                 ? '_Belum ada yang bisa dipratinjau…_'
                                 : _notesCtrl.text,
-                            styleSheet: MarkdownStyleSheet.fromTheme(
-                                    Theme.of(context))
-                                .copyWith(
+                            styleSheet:
+                                MarkdownStyleSheet.fromTheme(Theme.of(context))
+                                    .copyWith(
                               p: GoogleFonts.inter(
                                 fontSize: 15,
                                 height: 1.6,
@@ -354,10 +541,9 @@ class _AddNotePageState extends State<AddNotePage>
                             hintText:
                                 'Tulis insight, ringkasan, atau hal yang ingin kamu ingat dari konten ini.',
                           ),
-                          validator: (v) =>
-                              (v == null || v.trim().length < 10)
-                                  ? 'Minimal 10 karakter'
-                                  : null,
+                          validator: (v) => (v == null || v.trim().length < 10)
+                              ? 'Minimal 10 karakter'
+                              : null,
                         ),
                 ),
                 const SizedBox(height: 36),
@@ -378,8 +564,7 @@ class _AddNotePageState extends State<AddNotePage>
           child: BlocBuilder<VaultBloc, VaultState>(
             builder: (_, state) => EditorialButton(
               label: _isEdit ? 'Simpan perubahan' : 'Simpan ke Brankas',
-              icon:
-                  _isEdit ? Icons.check_rounded : Icons.save_alt_rounded,
+              icon: _isEdit ? Icons.check_rounded : Icons.save_alt_rounded,
               fullWidth: true,
               loading: state is VaultActionLoading,
               onPressed: _save,

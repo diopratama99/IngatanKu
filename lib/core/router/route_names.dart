@@ -19,6 +19,7 @@ class Routes {
   static const String chat = '/chat';
   static const String badges = '/badges';
   static const String badgesStats = '/badges/stats';
+  static const String weeklyQuiz = '/quiz/weekly';
   static const String profile = '/profile';
   static const String privacy = '/profile/privacy';
   static const String about = '/profile/about';

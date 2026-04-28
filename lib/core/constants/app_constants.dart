@@ -17,6 +17,13 @@ class AppConstants {
   // Edge Functions
   static const String fnAskBrain = 'ask-brain';
   static const String fnEmbedNote = 'embed-note';
+  static const String fnAutoSummarize = 'auto-summarize';
+  static const String fnResolveMedia = 'resolve-media';
+  static const String fnGenerateWeeklyQuiz = 'generate-weekly-quiz';
+  static const String fnReembedMissing = 'reembed-missing';
+
+  // RPC for quiz completion XP + badge unlock
+  static const String rpcAwardQuizCompletion = 'award_quiz_completion';
 
   // XP
   static const int xpPerNote = 10;
@@ -24,8 +31,25 @@ class AppConstants {
 
   // Suggested tech tags
   static const List<String> suggestedTags = [
-    'flutter', 'dart', 'react', 'nextjs', 'typescript', 'python',
-    'devops', 'docker', 'kubernetes', 'aws', 'supabase', 'postgres',
-    'rust', 'golang', 'ai', 'ml', 'llm', 'rag', 'debugging', 'security',
+    'flutter',
+    'dart',
+    'react',
+    'nextjs',
+    'typescript',
+    'python',
+    'devops',
+    'docker',
+    'kubernetes',
+    'aws',
+    'supabase',
+    'postgres',
+    'rust',
+    'golang',
+    'ai',
+    'ml',
+    'llm',
+    'rag',
+    'debugging',
+    'security',
   ];
 }

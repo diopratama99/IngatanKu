@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/markdown_strip.dart';
 import '../../../../shared/widgets/editorial.dart';
 import '../../domain/entities/note_entity.dart';
 
@@ -21,11 +22,12 @@ class VaultNoteRow extends StatelessWidget {
     final title = (note.title?.trim().isNotEmpty ?? false)
         ? note.title!
         : '(Tanpa judul)';
-    final hasPreview = note.manualNotes.trim().isNotEmpty;
+    // Strip markdown markers (↑`**bold**`, lists, headings) before the
+    // 140-char snippet so the row preview stays clean.
+    final stripped = stripMarkdown(note.manualNotes);
+    final hasPreview = stripped.isNotEmpty;
     final preview = hasPreview
-        ? (note.manualNotes.length > 140
-            ? '${note.manualNotes.substring(0, 140)}…'
-            : note.manualNotes)
+        ? (stripped.length > 140 ? '${stripped.substring(0, 140)}…' : stripped)
         : null;
 
     return InkWell(

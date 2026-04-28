@@ -22,6 +22,32 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
     return id;
   }
 
+  /// Fire-and-forget call to the `embed-note` edge function. We don't
+  /// rely on the database webhook to fire because self-hosted Supabase
+  /// instances often lack `pg_net`; calling the function inline gives
+  /// us a deterministic embedding pipeline. Errors are swallowed so a
+  /// missing key / network blip never blocks the user from saving the
+  /// note — worst case the embedding can be backfilled via
+  /// `reembed-missing` later.
+  Future<void> _triggerEmbed(NoteModel note) async {
+    try {
+      await service.client.functions.invoke(
+        AppConstants.fnEmbedNote,
+        body: {
+          'record': {
+            'id': note.id,
+            'title': note.title,
+            'manual_notes': note.manualNotes,
+          },
+        },
+      );
+    } catch (e) {
+      // Don't surface to caller — embedding is best-effort.
+      // ignore: avoid_print
+      print('[vault] embed-note invoke failed: $e');
+    }
+  }
+
   @override
   Future<NoteModel> addNote(Map<String, dynamic> insert) async {
     try {
@@ -31,7 +57,11 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
           .insert(insert)
           .select()
           .single();
-      return NoteModel.fromMap(res);
+      final note = NoteModel.fromMap(res);
+      // Trigger embedding asynchronously — user-facing save is already done.
+      // ignore: unawaited_futures
+      _triggerEmbed(note);
+      return note;
     } catch (e) {
       throw ServerException(e.toString());
     }
@@ -62,7 +92,16 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
           .eq('user_id', _userId)
           .select()
           .single();
-      return NoteModel.fromMap(res);
+      final note = NoteModel.fromMap(res);
+      // Re-embed only when the textual content changed; tag-only edits
+      // and url-only edits don't affect retrieval.
+      final touchesEmbeddingFields =
+          updates.containsKey('manual_notes') || updates.containsKey('title');
+      if (touchesEmbeddingFields) {
+        // ignore: unawaited_futures
+        _triggerEmbed(note);
+      }
+      return note;
     } catch (e) {
       throw ServerException(e.toString());
     }
@@ -85,7 +124,10 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
   @override
   Future<void> deleteNote(String id) async {
     try {
-      await service.client.from(AppConstants.tContentVault).delete().eq('id', id);
+      await service.client
+          .from(AppConstants.tContentVault)
+          .delete()
+          .eq('id', id);
     } catch (e) {
       throw ServerException(e.toString());
     }
@@ -98,8 +140,7 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
           .from(AppConstants.tContentVault)
           .select()
           .eq('user_id', _userId)
-          .contains('tags', [tag])
-          .order('created_at', ascending: false);
+          .contains('tags', [tag]).order('created_at', ascending: false);
       return (res as List).map((e) => NoteModel.fromMap(e)).toList();
     } catch (e) {
       throw ServerException(e.toString());

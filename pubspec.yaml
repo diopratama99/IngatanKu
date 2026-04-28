@@ -42,6 +42,11 @@ dependencies:
   http: ^1.2.2
   share_plus: ^10.0.2
 
+  # Media download (resolve-media → dio → app sandbox)
+  dio: ^5.7.0
+  path_provider: ^2.1.4
+  open_filex: ^4.5.0
+
   # Voice input
   # 7.x dropped Flutter v1 embedding (required by Flutter SDK 3.29+)
   speech_to_text: ^7.3.0

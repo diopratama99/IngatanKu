@@ -68,32 +68,75 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 1) Embed question
+    // 1) Fetch recent conversation history for this session so follow-up
+    //    questions like "ada lagi?" or "yang itu" don't get treated as
+    //    fresh, context-less queries.
+    const HISTORY_WINDOW = 6;
+    let conversationHistory: Array<{ role: string; content: string }> = [];
+    if (sessionId) {
+      const { data: histRows } = await supabase
+        .from("chat_messages")
+        .select("role, content")
+        .eq("user_id", user.id)
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: false })
+        .limit(HISTORY_WINDOW);
+      conversationHistory = (histRows ?? []).reverse(); // back to chronological
+    }
+
+    // 2) Build embedding query. For follow-ups, prepend the last user
+    //    turn so the topic carries over (e.g. "apakah ada lagi?" alone
+    //    has zero semantic match — but "docker apakah ada lagi?" does).
+    let lastUserMsg: string | null = null;
+    for (let i = conversationHistory.length - 1; i >= 0; i--) {
+      if (conversationHistory[i].role === "user") {
+        lastUserMsg = conversationHistory[i].content;
+        break;
+      }
+    }
+    const embedQuery =
+      lastUserMsg && lastUserMsg !== question
+        ? `${lastUserMsg}\n${question}`
+        : question;
+
     const embRes = await openai.embeddings.create({
       model: EMBED_MODEL,
-      input: question,
+      input: embedQuery,
     });
     const queryEmbedding = embRes.data[0].embedding;
 
-    // 2) Retrieve top-K notes — start permissive, the LLM can ignore
-    //    low-quality matches via the prompt instructions.
-    const { data: matches, error: rpcErr } = await supabase.rpc("match_notes", {
-      query_embedding: queryEmbedding,
-      match_user_id: user.id,
-      match_threshold: 0.4,
-      match_count: 6,
-    });
-    if (rpcErr) console.error("match_notes error:", rpcErr);
-    console.log(`match_notes returned ${matches?.length ?? 0} notes for user ${user.id}`);
+    // 3) Two-tier retrieval. Start with a sane threshold; if nothing
+    //    matches, retry with a looser one before falling back to the
+    //    "no notes" reply. Personal-scale corpora often have <50 notes
+    //    so a strict threshold is more likely to mis-fire than overfetch.
+    async function retrieve(threshold: number) {
+      const { data, error } = await supabase.rpc("match_notes", {
+        query_embedding: queryEmbedding,
+        match_user_id: user.id,
+        match_threshold: threshold,
+        match_count: 6,
+      });
+      if (error) console.error("match_notes error:", error);
+      return (data ?? []) as Array<{
+        id: string;
+        title: string | null;
+        manual_notes: string;
+        similarity: number;
+      }>;
+    }
 
-    const matchList = (matches ?? []) as Array<{
-      id: string;
-      title: string | null;
-      manual_notes: string;
-      similarity: number;
-    }>;
+    let matchList = await retrieve(0.4);
+    if (matchList.length === 0) {
+      matchList = await retrieve(0.25);
+    }
+    console.log(
+      `match_notes → ${matchList.length} notes for user ${user.id} ` +
+        `(history=${conversationHistory.length}, embedQuery="${embedQuery.slice(0, 60)}...")`,
+    );
 
-    // 3) Build prompt
+    // 4) Build prompt with softer fallback. The LLM now has both retrieval
+    //    AND conversation history; let it reason across both instead of
+    //    bailing the moment retrieval is empty.
     const context = matchList
       .map(
         (m, i) =>
@@ -101,27 +144,36 @@ Deno.serve(async (req) => {
       )
       .join("\n\n");
 
-    const systemPrompt = `Kamu adalah "Otak Kedua" pribadi user — asisten AI yang membantu mereka mengingat dan memahami catatan tech yang sudah mereka simpan.
+    const systemPrompt = `Kamu adalah "Otak Kedua" pribadi user — asisten AI yang ingat catatan tech yang sudah mereka simpan.
 
 ATURAN:
 - Jawab dalam Bahasa Indonesia yang santai dan natural.
-- Utamakan informasi dari CONTEXT di bawah. Sebut sumber dengan format [1], [2], dst sesuai nomor catatan.
-- Kalau CONTEXT relevan, jawab berdasarkan itu — TAPI boleh tambahkan sedikit penjelasan umum kalau membantu.
-- Kalau CONTEXT kosong atau tidak relevan sama sekali dengan pertanyaan, balas: "Aku belum punya catatan soal itu. Coba simpan konten dulu, baru tanya lagi ya 🙂"
-- Jangan halusinasi sumber. Hanya cite [1], [2], dst kalau memang ada di CONTEXT.
+- Utamakan informasi dari CONTEXT di bawah. Cite sumber pakai format [1], [2], dst sesuai nomor catatan.
+- Boleh tambahkan sedikit penjelasan umum kalau membantu pemahaman — tapi jangan halusinasi sumber.
+- Untuk follow-up question (mis. "ada lagi?", "yang itu", "tersebut", "atau apa"), gunakan RIWAYAT PERCAKAPAN untuk memahami maksud user. Jangan langsung bilang tidak punya catatan kalau topiknya jelas dari riwayat.
+- Kalau CONTEXT benar-benar kosong DAN tidak ada topik yang nyambung di riwayat percakapan, balas ramah: "Aku belum punya catatan soal itu — coba simpan dulu, baru tanya lagi ya 🙂"
+- Hanya cite [1], [2], dst kalau memang ada di CONTEXT. Jangan invent nomor.
 
 CONTEXT:
-${context || "(belum ada catatan yang cocok)"}`;
+${context || "(belum ada catatan yang cocok untuk query ini)"}`;
 
-    // 4) Stream from LLM
+    // 5) Stream from LLM with full conversation history. The model now
+    //    sees the multi-turn flow (alternating user/assistant) so it can
+    //    resolve pronouns and follow-ups naturally.
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      { role: "system", content: systemPrompt },
+      ...conversationHistory.map((m) => ({
+        role: (m.role === "assistant" ? "assistant" : "user") as "user" | "assistant",
+        content: m.content,
+      })),
+      { role: "user", content: question },
+    ];
+
     const completion = await openai.chat.completions.create({
       model: CHAT_MODEL,
       stream: true,
       temperature: 0.4,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: question },
-      ],
+      messages,
     });
 
     const encoder = new TextEncoder();

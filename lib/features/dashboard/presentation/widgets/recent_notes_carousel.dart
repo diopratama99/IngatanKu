@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/markdown_strip.dart';
 import '../../../vault/domain/entities/note_entity.dart';
 
 /// Auto-advancing editorial carousel that surfaces the user's most recent
@@ -164,7 +165,10 @@ class _NoteCarouselCard extends StatelessWidget {
     final title = (note.title?.trim().isNotEmpty ?? false)
         ? note.title!
         : '(Tanpa judul)';
-    final preview = note.manualNotes.trim();
+    // Strip markdown so the 2-line preview reads cleanly without `**`,
+    // `- `, `# ` etc. leaking through. The detail page still renders
+    // full Markdown via `MarkdownBody`.
+    final preview = stripMarkdown(note.manualNotes);
     final tagsLine = note.tags.take(3).map((t) => '#$t').join('   ·   ');
 
     return Material(

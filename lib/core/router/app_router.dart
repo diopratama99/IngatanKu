@@ -19,6 +19,7 @@ import '../../features/gamification/presentation/pages/badges_stats_page.dart';
 import '../../features/profile/presentation/pages/about_page.dart';
 import '../../features/profile/presentation/pages/privacy_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/quiz/presentation/pages/weekly_quiz_page.dart';
 import '../../features/vault/domain/entities/note_entity.dart';
 import '../../features/vault/presentation/bloc/vault_bloc.dart';
 import '../../features/vault/presentation/pages/add_note_page.dart';
@@ -166,6 +167,10 @@ class AppRouter {
         GoRoute(
           path: Routes.badgesStats,
           builder: (_, __) => const BadgesStatsPage(),
+        ),
+        GoRoute(
+          path: Routes.weeklyQuiz,
+          builder: (_, __) => const WeeklyQuizPage(),
         ),
         GoRoute(
           path: Routes.noteDetail,
