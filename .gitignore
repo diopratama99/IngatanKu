@@ -1,0 +1,99 @@
+# ─── Flutter / Dart ────────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+flutter_*.png
+linked_*.ds
+unlinked.ds
+unlinked_spec.ds
+coverage/
+
+# Generated symlinks / artefacts
+**/generated_plugin_registrant.*
+**/GeneratedPluginRegistrant.*
+**/.last_build_id
+
+# ─── IDE ───────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+
+# ─── OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ─── Env / secrets (CRITICAL — never commit) ───────────────────────
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p8
+*.p12
+*.pem
+*.cer
+*.mobileprovision
+
+# Firebase / Google service files
+google-services.json
+GoogleService-Info.plist
+firebase_app_id_file.json
+
+# Supabase runtime credentials
+supabase.json
+supabase.*.json
+!supabase.example.json
+.supabase/
+
+# Supabase local CLI state
+supabase/.branches
+supabase/.temp
+
+# ─── Android specific ──────────────────────────────────────────────
+android/key.properties
+android/**/local.properties
+android/.gradle/
+android/captures/
+android/.cxx/
+
+# ─── iOS / macOS specific ──────────────────────────────────────────
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+ios/Runner.xcworkspace/xcuserdata/
+ios/Runner.xcodeproj/xcuserdata/
+**/xcuserdata/
+**/DerivedData/
+
+macos/Pods/
+macos/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# ─── Fastlane ──────────────────────────────────────────────────────
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots/**/*.png
+**/fastlane/test_output
+
+# ─── Web ───────────────────────────────────────────────────────────
+web/firebase-config.js
+
+# ─── Misc ──────────────────────────────────────────────────────────
+*.log
+.history/
