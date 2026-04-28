@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/extensions.dart';
 import '../../../../shared/widgets/editorial.dart';
+import '../../../vault/domain/entities/note_entity.dart';
+import '../../../vault/domain/usecases/get_notes.dart';
+import '../../domain/suggested_prompts.dart';
 import '../bloc/chat_bloc.dart';
 import '../widgets/message_bubble.dart';
 
@@ -170,16 +175,55 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-class _EmptyChat extends StatelessWidget {
+class _EmptyChat extends StatefulWidget {
   const _EmptyChat();
 
   @override
+  State<_EmptyChat> createState() => _EmptyChatState();
+}
+
+class _EmptyChatState extends State<_EmptyChat> {
+  /// Cached prompts keyed by `yyyy-MM-dd` (UTC). Lives for the app's lifetime
+  /// so navigating in/out of chat doesn't re-fetch within the same day.
+  static String? _cacheDay;
+  static List<String>? _cachePrompts;
+
+  late Future<List<String>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadPrompts();
+  }
+
+  Future<List<String>> _loadPrompts() async {
+    final today = _todayKey();
+    if (_cacheDay == today && _cachePrompts != null) {
+      return _cachePrompts!;
+    }
+
+    List<NoteEntity> notes = const [];
+    try {
+      final result = await sl<GetNotes>()(const NoParams());
+      notes = result.fold((_) => const [], (n) => n);
+    } catch (_) {
+      notes = const [];
+    }
+
+    final prompts = SuggestedPromptsBuilder.build(notes);
+    _cacheDay = today;
+    _cachePrompts = prompts;
+    return prompts;
+  }
+
+  String _todayKey() {
+    final n = DateTime.now().toUtc();
+    return '${n.year}-${n.month.toString().padLeft(2, '0')}-'
+        '${n.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final prompts = [
-      'Apa saja catatanku tentang performa Flutter?',
-      'Rangkum catatanku tentang RAG',
-      'Tampilkan tips debugging yang aku simpan',
-    ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       children: [
@@ -192,42 +236,66 @@ class _EmptyChat extends StatelessWidget {
         const SizedBox(height: 36),
         const SectionHeader(label: 'COBA TANYA'),
         const SizedBox(height: 8),
-        ...List.generate(prompts.length, (i) {
-          return Column(
-            children: [
-              InkWell(
-                onTap: () =>
-                    context.read<ChatBloc>().add(ChatQuestionSent(prompts[i])),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.bolt_rounded,
-                          size: 16, color: AppColors.accent),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          prompts[i],
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.arrow_outward_rounded,
-                          size: 14, color: AppColors.textTertiary),
-                    ],
+        FutureBuilder<List<String>>(
+          future: _future,
+          builder: (_, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: AppColors.textTertiary,
+                    ),
                   ),
                 ),
-              ),
-              if (i != prompts.length - 1) const ThinDivider(),
-            ],
-          );
-        }),
+              );
+            }
+            final prompts = snap.data ?? const <String>[];
+            return Column(
+              children: List.generate(prompts.length, (i) {
+                return Column(
+                  children: [
+                    InkWell(
+                      onTap: () => context
+                          .read<ChatBloc>()
+                          .add(ChatQuestionSent(prompts[i])),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.bolt_rounded,
+                                size: 16, color: AppColors.accent),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                prompts[i],
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(Icons.arrow_outward_rounded,
+                                size: 14, color: AppColors.textTertiary),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (i != prompts.length - 1) const ThinDivider(),
+                  ],
+                );
+              }),
+            );
+          },
+        ),
       ],
     );
   }
