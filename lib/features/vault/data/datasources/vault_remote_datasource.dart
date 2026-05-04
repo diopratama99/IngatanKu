@@ -52,7 +52,7 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
   Future<NoteModel> addNote(Map<String, dynamic> insert) async {
     try {
       insert['user_id'] = _userId;
-      final res = await service.client
+      final res = await service.db
           .from(AppConstants.tContentVault)
           .insert(insert)
           .select()
@@ -70,7 +70,7 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
   @override
   Future<List<NoteModel>> getNotes({int limit = 50}) async {
     try {
-      final res = await service.client
+      final res = await service.db
           .from(AppConstants.tContentVault)
           .select()
           .eq('user_id', _userId)
@@ -85,7 +85,7 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
   @override
   Future<NoteModel> updateNote(String id, Map<String, dynamic> updates) async {
     try {
-      final res = await service.client
+      final res = await service.db
           .from(AppConstants.tContentVault)
           .update(updates)
           .eq('id', id)
@@ -110,7 +110,7 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
   @override
   Future<NoteModel> getNoteById(String id) async {
     try {
-      final res = await service.client
+      final res = await service.db
           .from(AppConstants.tContentVault)
           .select()
           .eq('id', id)
@@ -124,7 +124,7 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
   @override
   Future<void> deleteNote(String id) async {
     try {
-      await service.client
+      await service.db
           .from(AppConstants.tContentVault)
           .delete()
           .eq('id', id);
@@ -136,7 +136,7 @@ class VaultRemoteDataSourceImpl implements VaultRemoteDataSource {
   @override
   Future<List<NoteModel>> searchByTag(String tag) async {
     try {
-      final res = await service.client
+      final res = await service.db
           .from(AppConstants.tContentVault)
           .select()
           .eq('user_id', _userId)

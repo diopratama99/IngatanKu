@@ -19,6 +19,12 @@ class SupabaseService {
   }
 
   SupabaseClient get client => Supabase.instance.client;
+
+  /// Data accessor scoped to the dedicated `ingatanku` Postgres schema.
+  /// Use this for every `.from(...)` / `.rpc(...)` call so multiple apps
+  /// can safely coexist in the same Supabase project.
+  SupabaseQuerySchema get db => client.schema('ingatanku');
+
   GoTrueClient get auth => client.auth;
   User? get currentUser => auth.currentUser;
   String? get currentUserId => auth.currentUser?.id;

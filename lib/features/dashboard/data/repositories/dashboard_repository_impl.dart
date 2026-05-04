@@ -18,14 +18,14 @@ class DashboardRepositoryImpl implements DashboardRepository {
       if (userId == null) return const Left(AuthFailure('Not authenticated'));
 
       // Profile
-      final profile = await service.client
+      final profile = await service.db
           .from(AppConstants.tProfiles)
           .select()
           .eq('id', userId)
           .maybeSingle();
 
       // Recent notes
-      final notesRes = await service.client
+      final notesRes = await service.db
           .from(AppConstants.tContentVault)
           .select()
           .eq('user_id', userId)
@@ -35,18 +35,18 @@ class DashboardRepositoryImpl implements DashboardRepository {
           (notesRes as List).map((e) => NoteModel.fromMap(e)).toList();
 
       // Total notes count
-      final countRes = await service.client
+      final countRes = await service.db
           .from(AppConstants.tContentVault)
           .count();
 
       // Badges count
-      final badgesRes = await service.client
+      final badgesRes = await service.db
           .from(AppConstants.tUserBadges)
           .select('badge_id')
           .eq('user_id', userId);
 
       // Tag aggregation (client-side from recent 100)
-      final tagsRes = await service.client
+      final tagsRes = await service.db
           .from(AppConstants.tContentVault)
           .select('tags')
           .eq('user_id', userId)

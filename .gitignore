@@ -12,6 +12,9 @@ unlinked.ds
 unlinked_spec.ds
 coverage/
 
+#Cmd Line For Me
+command_line.md
+
 # Generated symlinks / artefacts
 **/generated_plugin_registrant.*
 **/GeneratedPluginRegistrant.*

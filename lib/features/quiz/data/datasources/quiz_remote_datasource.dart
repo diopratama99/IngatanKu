@@ -56,13 +56,13 @@ class QuizRemoteDataSource {
     required List<QuizAnswer> answers,
     required int score,
   }) async {
-    final supabase = service.client;
+    final db = service.db;
 
     // 5 XP per correct + 10 perfect-score bonus, capped at 50.
     final earnedXp = score * 5 + (score == answers.length ? 10 : 0);
 
     // 1) Update the quiz row. RLS allows the owner to update.
-    await supabase
+    await db
         .from('weekly_quizzes')
         .update({
           'user_answers': answers.map((a) => a.toJson()).toList(),
@@ -72,7 +72,7 @@ class QuizRemoteDataSource {
         .eq('id', quizId);
 
     // 2) Award XP + WEEKLY_REVIEWER badge atomically via RPC.
-    await supabase.rpc(
+    await db.rpc(
       AppConstants.rpcAwardQuizCompletion,
       params: {'quiz_id': quizId, 'earned_xp': earnedXp},
     );

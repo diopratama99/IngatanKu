@@ -16,8 +16,8 @@ class BadgeRepositoryImpl implements BadgeRepository {
       final userId = service.currentUserId;
       if (userId == null) return const Left(AuthFailure('Not authenticated'));
 
-      final all = await service.client.from(AppConstants.tBadges).select();
-      final unlockedRows = await service.client
+      final all = await service.db.from(AppConstants.tBadges).select();
+      final unlockedRows = await service.db
           .from(AppConstants.tUserBadges)
           .select()
           .eq('user_id', userId);

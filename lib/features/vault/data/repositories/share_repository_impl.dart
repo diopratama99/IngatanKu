@@ -14,7 +14,7 @@ class ShareRepositoryImpl implements ShareRepository {
   @override
   Future<Either<Failure, String>> enable(String noteId) async {
     try {
-      final token = await service.client.rpc(
+      final token = await service.db.rpc(
         'toggle_share',
         params: {'note_id': noteId, 'enable': true},
       );
@@ -30,7 +30,7 @@ class ShareRepositoryImpl implements ShareRepository {
   @override
   Future<Either<Failure, void>> disable(String noteId) async {
     try {
-      await service.client.rpc(
+      await service.db.rpc(
         'toggle_share',
         params: {'note_id': noteId, 'enable': false},
       );
@@ -43,7 +43,7 @@ class ShareRepositoryImpl implements ShareRepository {
   @override
   Future<Either<Failure, NoteEntity>> getByToken(String token) async {
     try {
-      final res = await service.client
+      final res = await service.db
           .from(AppConstants.tContentVault)
           .select()
           .eq('share_token', token)
