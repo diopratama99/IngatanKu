@@ -25,7 +25,8 @@
 // OPENAI_CHAT_MODEL.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import OpenAI from "https://esm.sh/openai@4.56.0";
+import { ENV } from "../_shared/env.ts";
+import { getOpenAI } from "../_shared/openai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,11 +35,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const openai = new OpenAI({
-  apiKey: Deno.env.get("OPENAI_API_KEY")!,
-  baseURL: Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1",
-});
-const CHAT_MODEL = Deno.env.get("OPENAI_CHAT_MODEL") ?? "gpt-4o-mini";
+const openai = getOpenAI();
+const CHAT_MODEL = ENV.OPENAI_CHAT_MODEL();
 
 /** Returns the Monday of the week containing [d], at 00:00:00 UTC. We
  * anchor on Monday because Sunday-end-of-week feels less natural in
@@ -190,8 +188,8 @@ Deno.serve(async (req) => {
     }
 
     // 3) Build the LLM prompt. Keep each note's body trimmed to ~600
-    //    chars so the combined context stays well within the 8k-token
-    //    budget of GPT-4o-mini / GitHub Models gpt-4.1-mini.
+    //    chars so the combined context stays well within the token budget
+    //    of the configured chat model.
     const validNoteIds = new Set(notes.map((n: any) => n.id as string));
     const notesBlock = notes
       .map((n: any, i: number) => {

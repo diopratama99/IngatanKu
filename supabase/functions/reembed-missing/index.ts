@@ -14,7 +14,8 @@
 // Response: { processed: N, skipped: M, errors: [...] }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import OpenAI from "https://esm.sh/openai@4.56.0";
+import { ENV } from "../_shared/env.ts";
+import { getOpenAI } from "../_shared/openai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,20 +24,15 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const openai = new OpenAI({
-  apiKey: Deno.env.get("OPENAI_API_KEY")!,
-  baseURL: Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1",
-});
-
-const EMBED_MODEL =
-  Deno.env.get("OPENAI_EMBED_MODEL") ?? "text-embedding-3-small";
+const openai = getOpenAI();
+const EMBED_MODEL = ENV.OPENAI_EMBED_MODEL();
 
 // Service-role client for the actual UPDATE (bypasses RLS so we can
 // patch even rows that the user-scoped client wouldn't see during the
 // race between webhook and read).
 const admin = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  ENV.SUPABASE_URL(),
+  ENV.SUPABASE_SERVICE_ROLE_KEY(),
   { db: { schema: "ingatanku" } },
 );
 

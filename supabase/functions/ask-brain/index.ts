@@ -4,14 +4,14 @@
 //
 // Deploy: supabase functions deploy ask-brain
 // Secrets:
-//   supabase secrets set OPENAI_API_KEY=<key-or-github-pat>
-//   # Optional — point to a different OpenAI-compatible provider:
-//   supabase secrets set OPENAI_BASE_URL=https://models.github.ai/inference
-//   supabase secrets set OPENAI_CHAT_MODEL=gpt-4o-mini
-//   supabase secrets set OPENAI_EMBED_MODEL=text-embedding-3-small
+//   supabase secrets set OPENAI_API_KEY=<key>
+//   supabase secrets set OPENAI_BASE_URL=<your-router-url>/v1
+//   supabase secrets set OPENAI_CHAT_MODEL=<model-name>
+//   supabase secrets set OPENAI_EMBED_MODEL=<embed-model-name>
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import OpenAI from "https://esm.sh/openai@4.56.0";
+import { ENV } from "../_shared/env.ts";
+import { getOpenAI } from "../_shared/openai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,17 +20,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Both OpenAI proper and GitHub Models / OpenRouter / Together / etc expose
-// the same OpenAI-compatible REST API; we just point baseURL at whichever
-// provider's API key is configured.
-const openai = new OpenAI({
-  apiKey: Deno.env.get("OPENAI_API_KEY")!,
-  baseURL: Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1",
-});
-
-const CHAT_MODEL = Deno.env.get("OPENAI_CHAT_MODEL") ?? "gpt-4o-mini";
-const EMBED_MODEL =
-  Deno.env.get("OPENAI_EMBED_MODEL") ?? "text-embedding-3-small";
+const openai = getOpenAI();
+const CHAT_MODEL = ENV.OPENAI_CHAT_MODEL();
+const EMBED_MODEL = ENV.OPENAI_EMBED_MODEL();
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });

@@ -15,6 +15,10 @@ coverage/
 #Cmd Line For Me
 command_line.md
 
+._*
+.DS_Store
+
+
 # Generated symlinks / artefacts
 **/generated_plugin_registrant.*
 **/GeneratedPluginRegistrant.*

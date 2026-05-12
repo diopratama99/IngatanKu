@@ -6,13 +6,13 @@
 //
 // Deploy: supabase functions deploy auto-summarize
 // Secrets (shared with ask-brain — no extra setup needed):
-//   supabase secrets set OPENAI_API_KEY=<key-or-github-pat>
-//   # Optional:
-//   supabase secrets set OPENAI_BASE_URL=https://models.github.ai/inference
-//   supabase secrets set OPENAI_CHAT_MODEL=gpt-4o-mini
+//   supabase secrets set OPENAI_API_KEY=<key>
+//   supabase secrets set OPENAI_BASE_URL=<your-router-url>/v1
+//   supabase secrets set OPENAI_CHAT_MODEL=<model-name>
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import OpenAI from "https://esm.sh/openai@4.56.0";
+import { ENV } from "../_shared/env.ts";
+import { getOpenAI } from "../_shared/openai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,12 +21,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const openai = new OpenAI({
-  apiKey: Deno.env.get("OPENAI_API_KEY")!,
-  baseURL: Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1",
-});
-
-const CHAT_MODEL = Deno.env.get("OPENAI_CHAT_MODEL") ?? "gpt-4o-mini";
+const openai = getOpenAI();
+const CHAT_MODEL = ENV.OPENAI_CHAT_MODEL();
 
 // Spoof a desktop browser UA so news sites don't serve a paywall/cookie
 // banner. Same UA as fetch-meta for consistency.
