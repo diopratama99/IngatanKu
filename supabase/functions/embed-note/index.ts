@@ -7,16 +7,21 @@
 // Then create a Database Webhook on table content_vault, event INSERT,
 // pointing to https://<project>.functions.supabase.co/embed-note
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { ENV } from "../_shared/env.ts";
-import { getOpenAI } from "../_shared/openai-client.ts";
+import { createClient } from "@supabase/supabase-js";
+import OpenAI from "openai";
 
-const openai = getOpenAI();
-const EMBED_MODEL = ENV.OPENAI_EMBED_MODEL();
+const _embedBaseURL = Deno.env.get("OPENAI_EMBED_BASE_URL") ?? Deno.env.get("OPENAI_BASE_URL");
+const _embedApiKey = Deno.env.get("OPENAI_EMBED_API_KEY") ?? Deno.env.get("OPENAI_API_KEY")!;
+const embedClient = new OpenAI({
+  apiKey: _embedApiKey,
+  ...(_embedBaseURL ? { baseURL: _embedBaseURL } : {}),
+});
+
+const EMBED_MODEL = Deno.env.get("OPENAI_EMBED_MODEL") ?? "text-embedding-3-small";
 
 const supabaseAdmin = createClient(
-  ENV.SUPABASE_URL(),
-  ENV.SUPABASE_SERVICE_ROLE_KEY(),
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   { db: { schema: "ingatanku" } },
 );
 
@@ -31,7 +36,7 @@ Deno.serve(async (req) => {
 
     const text = `${record.title ?? ""}\n\n${record.manual_notes}`.trim();
 
-    const embRes = await openai.embeddings.create({
+    const embRes = await embedClient.embeddings.create({
       model: EMBED_MODEL,
       input: text,
     });

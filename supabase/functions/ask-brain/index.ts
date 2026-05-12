@@ -9,9 +9,8 @@
 //   supabase secrets set OPENAI_CHAT_MODEL=<model-name>
 //   supabase secrets set OPENAI_EMBED_MODEL=<embed-model-name>
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { ENV } from "../_shared/env.ts";
-import { getOpenAI } from "../_shared/openai-client.ts";
+import { createClient } from "@supabase/supabase-js";
+import OpenAI from "openai";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,9 +19,22 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const openai = getOpenAI();
-const CHAT_MODEL = ENV.OPENAI_CHAT_MODEL();
-const EMBED_MODEL = ENV.OPENAI_EMBED_MODEL();
+const _baseURL = Deno.env.get("OPENAI_BASE_URL");
+const openai = new OpenAI({
+  apiKey: Deno.env.get("OPENAI_API_KEY")!,
+  ...(_baseURL ? { baseURL: _baseURL } : {}),
+});
+
+// Separate client for embeddings — router may not support /v1/embeddings.
+const _embedBaseURL = Deno.env.get("OPENAI_EMBED_BASE_URL") ?? _baseURL;
+const _embedApiKey = Deno.env.get("OPENAI_EMBED_API_KEY") ?? Deno.env.get("OPENAI_API_KEY")!;
+const embedClient = new OpenAI({
+  apiKey: _embedApiKey,
+  ...(_embedBaseURL ? { baseURL: _embedBaseURL } : {}),
+});
+
+const CHAT_MODEL = Deno.env.get("OPENAI_CHAT_MODEL") ?? Deno.env.get("OPENAI_MODEL") ?? (() => { throw new Error("Missing OPENAI_CHAT_MODEL env var"); })();
+const EMBED_MODEL = Deno.env.get("OPENAI_EMBED_MODEL") ?? "text-embedding-3-small";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -94,7 +106,7 @@ Deno.serve(async (req) => {
         ? `${lastUserMsg}\n${question}`
         : question;
 
-    const embRes = await openai.embeddings.create({
+    const embRes = await embedClient.embeddings.create({
       model: EMBED_MODEL,
       input: embedQuery,
     });

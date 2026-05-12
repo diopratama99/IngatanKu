@@ -10,9 +10,8 @@
 //   supabase secrets set OPENAI_BASE_URL=<your-router-url>/v1
 //   supabase secrets set OPENAI_CHAT_MODEL=<model-name>
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { ENV } from "../_shared/env.ts";
-import { getOpenAI } from "../_shared/openai-client.ts";
+import { createClient } from "@supabase/supabase-js";
+import OpenAI from "openai";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,8 +20,13 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const openai = getOpenAI();
-const CHAT_MODEL = ENV.OPENAI_CHAT_MODEL();
+const _baseURL = Deno.env.get("OPENAI_BASE_URL");
+const openai = new OpenAI({
+  apiKey: Deno.env.get("OPENAI_API_KEY")!,
+  ...(_baseURL ? { baseURL: _baseURL } : {}),
+});
+
+const CHAT_MODEL = Deno.env.get("OPENAI_CHAT_MODEL") ?? Deno.env.get("OPENAI_MODEL") ?? (() => { throw new Error("Missing OPENAI_CHAT_MODEL env var"); })();
 
 // Spoof a desktop browser UA so news sites don't serve a paywall/cookie
 // banner. Same UA as fetch-meta for consistency.
