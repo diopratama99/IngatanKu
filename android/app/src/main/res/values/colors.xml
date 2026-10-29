@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#FEFDF8</color>
+    <!-- The app's paper (AppPalette.bgPrimary): behind it while it starts,
+         so opening it, or sharing to it, doesn't flash white. -->
+    <color name="paper">#F7F5F1</color>
+</resources>

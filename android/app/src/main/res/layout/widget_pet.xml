@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PetWidget — the pet and what it wants. RemoteViews-safe:
+   * no ?android:attr theme references (resolved against the launcher's
+     theme, they break on OEM launchers);
+   * only allowlisted views (no plain <View>);
+   * the picture and lines here are what the widget picker previews and
+     what shows before the app has written anything.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pet_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="14dp"
+    android:background="@drawable/widget_background">
+
+    <ImageView
+        android:id="@+id/pet_image"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/widget_pet_preview"
+        android:contentDescription="@string/widget_pet_image"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/pet_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_preview_title"
+            android:textColor="#26241F"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/pet_body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/widget_preview_body"
+            android:textColor="#6B675E"
+            android:textSize="12.5sp"
+            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
+            android:ellipsize="end"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/pet_cta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:background="@drawable/widget_button_bg"
+                android:text="@string/widget_preview_cta"
+                android:textColor="#FBF6EC"
+                android:textSize="12.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"/>
+
+            <TextView
+                android:id="@+id/pet_streak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:textColor="#8A6A45"
+                android:textSize="11.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:visibility="gone"/>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

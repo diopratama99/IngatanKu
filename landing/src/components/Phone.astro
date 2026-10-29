@@ -1,0 +1,17 @@
+---
+// A phone, playing one of the app's clips, recorded with the app in
+// the page's language (loaded once it's near).
+interface Props {
+  clip: string;
+  lang: string;
+  label: string;
+  class?: string;
+}
+const { clip, lang, label, class: extra } = Astro.props;
+---
+
+<div class:list={['phone', extra]}>
+  <div class="phone-screen">
+    <video data-src={`/video/${lang}/${clip}.mp4`} muted loop playsinline preload="none" aria-label={label}></video>
+  </div>
+</div>

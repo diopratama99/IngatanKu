@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Recent Notes widget's sheet of paper, in the app's palette.
+
+  Notes:
+   * #FFFDF8 cream paper (NoteColorPalette's plain paper).
+   * Radius 24dp — close to the Android 12+ system-applied rounded mask
+     (~28dp on most launchers) so the corners don't reveal a square edge
+     just inside the system mask.
+   * No stroke: the system rounding clips a stroke into a half-arc that
+     looks broken; the cream against the wallpaper defines the tile.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FFFDF8"/>
+    <corners android:radius="24dp"/>
+</shape>

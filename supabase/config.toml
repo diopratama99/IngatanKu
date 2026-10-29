@@ -1,0 +1,38 @@
+# Supabase CLI settings for IngatanKu.
+project_id = "ingatanku"
+
+# Every function checks the caller's token itself (supabase.auth.getUser, or
+# _shared/auth.ts) and answers 401 without a signed-in user. The gateway's
+# own JWT check stays off: it only understands the legacy anon/service_role
+# keys, so with the new publishable/secret keys it would turn requests away.
+
+[functions.ask-brain]
+verify_jwt = false
+
+[functions.auto-summarize]
+verify_jwt = false
+
+[functions.daily-quiz]
+verify_jwt = false
+
+[functions.embed-note]
+verify_jwt = false
+
+[functions.fetch-meta]
+verify_jwt = false
+
+[functions.generate-weekly-quiz]
+verify_jwt = false
+
+# The landing page's beta form: public, it checks its own input.
+[functions.beta-signup]
+verify_jwt = false
+
+[functions.record-quiz-answer]
+verify_jwt = false
+
+[functions.reembed-missing]
+verify_jwt = false
+
+[functions.resolve-media]
+verify_jwt = false

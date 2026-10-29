@@ -1,0 +1,164 @@
+name: ingatanku
+description: "IngatanKu: everything you save, remembered. Bolubi writes your notes, answers from them and quizzes you a little every day."
+publish_to: 'none'
+# The app's version, and the only place it's written (the About page reads
+# it from the installed app). Every release bumps it and gets a section in
+# CHANGELOG.md and CHANGELOG.id.md: see "Versions and the changelog" in
+# README.md.
+version: 1.0.0-beta+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Material/Cupertino strings (Cancel, OK, datepicker labels, etc.)
+  # localized into Bahasa Indonesia + English. Required as soon as
+  # we set MaterialApp.supportedLocales — without it Flutter throws
+  # "No MaterialLocalizations found." on every Scaffold.
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_bloc: ^8.1.5
+  equatable: ^2.0.5
+
+  # Backend
+  supabase_flutter: ^2.5.6
+
+  # Routing
+  go_router: ^14.2.0
+
+  # DI
+  get_it: ^7.7.0
+
+  # FP
+  dartz: ^0.10.1
+
+  # UI / UX
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  flutter_markdown_plus: ^1.0.3
+
+  # Utils
+  intl: ^0.20.2
+  url_launcher: ^6.3.0
+  http: ^1.2.2
+  share_plus: ^10.0.2
+
+  # Media download (resolve-media → dio → app sandbox)
+  dio: ^5.7.0
+  path_provider: ^2.1.4
+  open_filex: ^4.5.0
+
+  # Inline video player for IG/TikTok/X reels resolved via Cobalt.
+  # YouTube continues to use the external launcher (no in-app player) since
+  # the official platform requires the IFrame embed for ads/analytics.
+  video_player: ^2.9.1
+
+  # Voice input
+  # 7.x dropped Flutter v1 embedding (required by Flutter SDK 3.29+)
+  speech_to_text: ^7.3.0
+  permission_handler: ^11.3.1
+
+  # OTP input UI
+  pinput: ^5.0.0
+
+  # Receive shared content (URL, text) from other apps
+  receive_sharing_intent: ^1.8.0
+
+  # Homescreen widget bridge (Android AppWidgetProvider; iOS WidgetKit on demand)
+  home_widget: ^0.7.0
+
+  # Local notifications
+  # 17.x ships an internal `LongUtils` helper class that occasionally fails
+  # to land in the primary dex on AGP 8.x + Kotlin 2.x setups (manifests at
+  # runtime as `NoClassDefFoundError ... LongUtils`). 19.x refactored that
+  # away and kept the API surface we use (initialize, zonedSchedule,
+  # cancel, createNotificationChannel) source-compatible.
+  flutter_local_notifications: ^19.4.0
+  timezone: ^0.10.1
+
+  # Lightweight key-value persistence — used to remember UI choices
+  # like the Brankas list/grid layout toggle.
+  shared_preferences: ^2.3.0
+
+  # Photo / camera picker for the Catatan feature. Saves picked images
+  # to the app's documents directory; nothing is uploaded.
+  image_picker: ^1.1.0
+
+  # UUID v4 generator — used to mint stable filenames for picked
+  # images so the DB row only stores basenames.
+  uuid: ^4.5.0
+
+  bloc: any
+
+  # The pet's sound effects (low-latency playback, mixes with other apps).
+  audioplayers: ^6.7.1
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  connectivity_plus: ^7.3.1
+  clock: ^1.1.2
+  google_sign_in: ^7.2.0
+  # The installed app's version, for the About page.
+  package_info_plus: ^9.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.4
+
+  # Generates platform-specific app launcher icons (Android mipmap + adaptive
+  # icons, iOS AppIcon.appiconset, web favicon). Run `tools/make_icons.sh`,
+  # which draws the PNGs from assets/brand/ first.
+  flutter_launcher_icons: ^0.13.1
+  sqflite_common_ffi: ^2.3.7+1
+
+# ─── App launcher icon configuration ───────────────────────────────
+# Both PNGs are drawn from assets/brand/ by `tools/make_icons.sh`:
+# `app_icon.png` is Bolubi on a cream square (iOS, web, Android < 8.0);
+# `app_icon_foreground.png` is Bolubi alone, sized into the adaptive
+# icon's 66dp safe circle so no launcher mask clips the book or sprout.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FEFDF8"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
+
+flutter:
+  uses-material-design: true
+  # Enable Flutter's gen_l10n pipeline. Strings live in
+  # lib/l10n/*.arb; `flutter gen-l10n` (or just `flutter pub get`)
+  # regenerates the typed AppLocalizations class from them.
+  generate: true
+  assets:
+    # Google's "G", for its sign-in button.
+    - assets/auth/
+    - assets/home/
+    - assets/library/
+    - assets/food/
+    - assets/notes/
+    - assets/assistant/
+    # Sound effects, one folder per part of the app.
+    - assets/sounds/mascot/
+    - assets/sounds/chatter/
+    - assets/sounds/friend/
+    - assets/sounds/scribe/
+    - assets/sounds/notes/
+    - assets/sounds/quiz/
+    - assets/sounds/room/
+    - assets/sounds/library/
+    - assets/sounds/ui/
+    - assets/sounds/ambience/
+    - assets/sounds/music/
+    # The pet's TV: small copies of the clips in assets/tv/ (only these are
+    # bundled — the originals are far too big to ship).
+    - assets/tv/optimized/

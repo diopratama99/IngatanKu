@@ -1,0 +1,12 @@
+# On the server: docker compose up -d --build
+services:
+  site:
+    build:
+      context: .
+      args:
+        SITE_URL: ${SITE_URL:-}
+    image: ingatanku-landing
+    container_name: ingatanku-landing
+    restart: unless-stopped
+    ports:
+      - "${SITE_PORT:-3014}:80"

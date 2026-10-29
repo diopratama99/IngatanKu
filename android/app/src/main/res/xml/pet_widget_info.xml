@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PetWidget: 4 × 2 cells, resizable. updatePeriodMillis (30 min, the
+  shortest the system allows) is what moves it on to hungry after
+  midnight and sad in the evening while the app stays closed; the app
+  updates it straight away whenever the pet changes.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/widget_pet"
+    android:previewLayout="@layout/widget_pet"
+    android:previewImage="@drawable/widget_pet_preview"
+    android:description="@string/widget_pet_description"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="200dp"
+    android:minResizeHeight="100dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="1800000"/>

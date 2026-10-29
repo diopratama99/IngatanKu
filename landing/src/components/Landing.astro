@@ -1,0 +1,267 @@
+---
+// The whole page, in [lang].
+import Base from '../layouts/Base.astro';
+import Phone from './Phone.astro';
+import Icon from './Icon.astro';
+import Hero from './Hero';
+import { BolubiMark } from './Bolubi';
+import { BetaForm, ChatDemo, DemoTour, Grow, Helper, QuizDemo, TrailerPlayer, Wardrobe, WidgetDemo } from './islands';
+import { strings, pathFor, type Lang } from '../i18n/strings';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = strings[lang];
+const other: Lang = lang === 'en' ? 'id' : 'en';
+const pet = (name: string) => `/mascot/${name}.webp`;
+---
+
+<Base lang={lang}>
+  <a class="skip sr-only" href="#join">{t.nav.join}</a>
+
+  <header class="nav">
+    <div class="wrap nav-row">
+      <a class="nav-logo" href={pathFor(lang)} aria-label="IngatanKu">
+        <BolubiMark className="nav-mark" />
+        <span>IngatanKu</span>
+      </a>
+      <nav class="nav-links" aria-label="IngatanKu">
+        <a href="#how">{t.nav.how}</a>
+        <a href="#bolubi">{t.nav.bolubi}</a>
+        <a href="#demo">{t.nav.demo}</a>
+        <a href="#faq">{t.nav.faq}</a>
+      </nav>
+      <div class="nav-end">
+        <a class="nav-lang" href={pathFor(other)} hreflang={other} lang={other} aria-label={t.nav.otherLangLabel}>{t.nav.otherLang}</a>
+        <a class="btn btn-primary nav-join" href="#join">{t.nav.join}</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div data-helper="hero">
+      <Hero client:load t={t.hero} joinHref="#join" demoHref="#trailer" />
+    </div>
+
+    <!-- Trailer -->
+    <section class="section trailer-sec" id="trailer" data-helper="trailer">
+      <div class="wrap">
+        <div class="center-head">
+          <span class="eyebrow reveal">{t.trailer.eyebrow}</span>
+          <h2 class="h2 reveal">{t.trailer.title}</h2>
+          <p class="lead reveal">{t.trailer.body}</p>
+        </div>
+        <div class="trailer-stage reveal">
+          <div class="halo"></div>
+          <img class="pet trailer-peek bob" src={pet('face-happy')} alt="" loading="lazy" />
+          <TrailerPlayer client:visible t={t.trailer} lang={lang} />
+        </div>
+      </div>
+    </section>
+
+    <!-- Save -->
+    <section class="section" id="how" data-helper="save">
+      <div class="wrap split">
+        <div class="split-text">
+          <span class="eyebrow reveal">{t.save.eyebrow}</span>
+          <h2 class="h2 reveal">{t.save.title}</h2>
+          <p class="lead reveal">{t.save.body}</p>
+          <ol class="steps">
+            {
+              t.save.steps.map((s, i) => (
+                <li class="reveal" style={`--delay:${0.1 + i * 0.1}s`}>
+                  <span class="step-n">{i + 1}</span>
+                  <span>{s}</span>
+                </li>
+              ))
+            }
+          </ol>
+          <div class="kinds reveal">{t.save.kinds.map((k) => <span class="chip">{k}</span>)}</div>
+        </div>
+        <div class="split-media reveal">
+          <div class="halo"></div>
+          <Phone clip="capture" lang={lang} label={t.save.title} />
+          <div class="share-sheet card" aria-hidden="true">
+            <span class="share-app"><BolubiMark className="share-mark" /></span>
+            <span class="share-name">IngatanKu</span>
+          </div>
+          <img class="pet peek peek-right bob" src={pet('face-smirk')} alt="" loading="lazy" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Ask -->
+    <section class="section ask" data-helper="ask">
+      <div class="wrap split flip">
+        <div class="split-text">
+          <span class="eyebrow reveal">{t.ask.eyebrow}</span>
+          <h2 class="h2 reveal">{t.ask.title}</h2>
+          <p class="lead reveal">{t.ask.body}</p>
+        </div>
+        <div class="split-media reveal">
+          <ChatDemo client:visible t={t.ask} />
+        </div>
+      </div>
+    </section>
+
+    <!-- Quiz -->
+    <section class="section quiz-sec" data-helper="quiz">
+      <div class="wrap">
+        <div class="center-head">
+          <span class="eyebrow reveal">{t.quiz.eyebrow}</span>
+          <h2 class="h2 reveal">{t.quiz.title}</h2>
+          <p class="lead reveal">{t.quiz.body}</p>
+        </div>
+        <div class="quiz-grid">
+          <div class="quiz-cards">
+            {
+              t.quiz.cards.map((c, i) => (
+                <article class="card meal reveal" style={`--delay:${i * 0.1}s`}>
+                  <img class="pet meal-art" src={['/art/onigiri.webp', pet('face-smirk'), pet('stage-adult')][i]} alt="" loading="lazy" />
+                  <div>
+                    <h3>{c.title}</h3>
+                    <p>{c.body}</p>
+                  </div>
+                </article>
+              ))
+            }
+          </div>
+          <div class="reveal">
+            <QuizDemo client:visible t={t.quiz.sample} />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grow -->
+    <section id="bolubi" data-helper="grow">
+      <Grow client:visible t={t.grow} />
+    </section>
+
+    <!-- Wardrobe -->
+    <section class="section" data-helper="wardrobe">
+      <div class="wrap">
+        <div class="center-head">
+          <span class="eyebrow reveal">{t.wardrobe.eyebrow}</span>
+          <h2 class="h2 reveal">{t.wardrobe.title}</h2>
+          <p class="lead reveal">{t.wardrobe.body}</p>
+        </div>
+        <div class="reveal">
+          <Wardrobe client:visible t={t.wardrobe} />
+        </div>
+      </div>
+    </section>
+
+    <!-- Widget -->
+    <section class="section widget-sec" data-helper="widget">
+      <div class="wrap split">
+        <div class="split-text">
+          <span class="eyebrow reveal">{t.widget.eyebrow}</span>
+          <h2 class="h2 reveal">{t.widget.title}</h2>
+          <p class="lead reveal">{t.widget.body}</p>
+        </div>
+        <div class="split-media reveal">
+          <WidgetDemo client:visible t={t.widget} />
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo -->
+    <section class="section demo-sec" id="demo" data-helper="demo">
+      <div class="wrap">
+        <div class="center-head">
+          <span class="eyebrow reveal">{t.demo.eyebrow}</span>
+          <h2 class="h2 reveal">{t.demo.title}</h2>
+          <p class="lead reveal">{t.demo.body}</p>
+        </div>
+        <div class="reveal">
+          <DemoTour client:visible t={t.demo} lang={lang} />
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" data-helper="features">
+      <div class="wrap">
+        <div class="center-head">
+          <span class="eyebrow reveal">{t.features.eyebrow}</span>
+          <h2 class="h2 reveal">{t.features.title}</h2>
+        </div>
+        <div class="bento">
+          {
+            t.features.items.map((f, i) => (
+              <article class="card feature reveal" style={`--delay:${(i % 3) * 0.08}s`}>
+                <span class="feature-icon">
+                  <Icon name={f.icon} />
+                </span>
+                <h3>{f.title}</h3>
+                <p>{f.body}</p>
+                {i === 1 && <img class="pet feature-peek" src={pet('face-content')} alt="" loading="lazy" />}
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Beta -->
+    <section class="beta" id="join" data-helper="beta">
+      <div class="stars" aria-hidden="true"></div>
+      <div class="wrap beta-grid">
+        <div class="beta-text">
+          <span class="eyebrow on-dark reveal">{t.beta.eyebrow}</span>
+          <h2 class="h2 reveal">{t.beta.title}</h2>
+          <p class="lead reveal">{t.beta.body}</p>
+          <div class="beta-pets reveal" aria-hidden="true">
+            <img class="pet bob" style="--d:0s" src={pet('stage-egg')} alt="" loading="lazy" />
+            <img class="pet bob" style="animation-delay:-.8s" src={pet('stage-baby')} alt="" loading="lazy" />
+            <img class="pet bob" style="animation-delay:-1.6s" src={pet('color-matcha')} alt="" loading="lazy" />
+            <img class="pet bob" style="animation-delay:-2.4s" src={pet('outfit-frog')} alt="" loading="lazy" />
+          </div>
+        </div>
+        <div class="beta-card card reveal">
+          <BetaForm client:visible t={t.beta} lang={lang} />
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq" data-helper="faq">
+      <div class="wrap faq-grid">
+        <div>
+          <span class="eyebrow reveal">{t.faq.eyebrow}</span>
+          <h2 class="h2 reveal">{t.faq.title}</h2>
+          <img class="pet faq-pet reveal" src={pet('acc-glasses')} alt="" loading="lazy" />
+        </div>
+        <div class="faq-list">
+          {
+            t.faq.items.map((f) => (
+              <details class="faq-item reveal">
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
+              </details>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-row">
+      <div class="footer-brand">
+        <img src="/brand/ingatanku-wordmark.svg" alt="IngatanKu" width="150" height="38" />
+        <p>{t.footer.made}</p>
+      </div>
+      <div class="footer-links">
+        <a href="#join">{t.nav.join}</a>
+        <a href={pathFor(other)} hreflang={other} lang={other}>{t.nav.otherLangLabel}</a>
+      </div>
+      <img class="pet footer-pet" src={pet('face-sleepy')} alt="" loading="lazy" />
+    </div>
+    <p class="wrap footer-copy">© 2026 TemanLabs</p>
+  </footer>
+
+  <Helper client:idle t={t.helper} />
+</Base>

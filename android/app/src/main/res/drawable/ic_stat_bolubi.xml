@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bolubi's silhouette for the status bar: Android draws a notification's
+     small icon from its alpha alone, so it's white with the face cut out.
+     Same shapes as assets/brand/bolubi.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="660"
+    android:viewportHeight="660">
+    <group
+        android:translateX="-312"
+        android:translateY="-215">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M392,600 A250,250 0 1,1 892,600 A250,250 0 1,1 392,600 Z M541,552 L591,548 C592,577 581,594 566,594 C551,594 541,578 541,552 Z M688,543 L741,538 C742,566 731,582 715,582 C699,582 688,568 688,543 Z M598,593 C627,592 662,582 688,568 C697,564 703,573 697,582 C682,606 659,628 634,628 C614,628 598,618 592,609 C587,602 590,594 598,593 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M361,628 A28,37 0 1,0 417,628 A28,37 0 1,0 361,628 Z M867,628 A28,37 0 1,0 923,628 A28,37 0 1,0 867,628 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M612,287 C600,273 580,266 565,270 C556,272 553,279 558,284 C566,292 582,297 596,296 C604,295 609,291 612,287 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M615,288 C614,270 628,252 650,243 C660,239 670,239 672,244 C674,252 664,266 648,276 C636,284 624,288 615,288 Z" />
+        <path
+            android:pathData="M621,372 C619,338 609,312 613,287"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeWidth="16" />
+    </group>
+</vector>

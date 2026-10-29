@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the home-screen widget shows in the picker, before the app has
+     written its own lines (lib/l10n has the real ones). -->
+<resources>
+    <string name="widget_pet_description">Your pet, and whether it has eaten today</string>
+    <string name="widget_pet_image">Your pet</string>
+    <string name="widget_preview_title">Bolubi is hungry!</string>
+    <string name="widget_preview_body">Today\'s quiz is ready. Just 3 questions.</string>
+    <string name="widget_preview_cta">Feed it</string>
+</resources>

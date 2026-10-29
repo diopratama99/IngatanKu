@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget's walnut button (the app's primary colour), a pill like
+     the app's own buttons. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#5B4630"/>
+    <corners android:radius="100dp"/>
+</shape>
